@@ -100,12 +100,15 @@ section{padding:56px 0}
 .lapname{text-align:right;font-size:13px;color:var(--mut);margin:8px 0 0}
 
 /* gallery */
-.gbar{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.gal{display:flex;flex-direction:column;height:min(78svh,780px);overflow:hidden;padding:2px 8px 0 10px}
+.gbar{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);flex:none}
+.gscroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior-y:auto;padding:16px 2px 28px;scrollbar-width:thin;-webkit-mask-image:linear-gradient(#000 calc(100% - 36px),transparent);mask-image:linear-gradient(#000 calc(100% - 36px),transparent)}
+.gfoot{flex:none;display:flex;justify-content:space-between;gap:12px;padding:10px 4px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--mut)}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1}
 .tabs::-webkit-scrollbar{display:none}
-.tab{position:relative;border:0;background:none;color:var(--mut);font-size:clamp(11px,3vw,12.5px);letter-spacing:.06em;text-transform:uppercase;padding:14px 7px;cursor:pointer;white-space:nowrap}
+.tab{position:relative;border:0;background:none;color:var(--mut);font-size:clamp(11px,3vw,12.5px);letter-spacing:.04em;text-transform:uppercase;padding:14px 6px;cursor:pointer;white-space:nowrap}
 .tab[aria-selected=true]{color:var(--ink)}
-.tab[aria-selected=true]::after{content:"";position:absolute;left:7px;right:7px;bottom:-1px;height:2px;background:var(--ink);border-radius:2px}
+.tab[aria-selected=true]::after{content:"";position:absolute;left:6px;right:6px;bottom:-1px;height:2px;background:var(--ink);border-radius:2px}
 .fbtn{position:relative}
 .fbtn i{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px}
@@ -120,7 +123,6 @@ section{padding:56px 0}
 .art span{font-size:14px;color:var(--mut);font-variant-numeric:tabular-nums}
 .empty{grid-column:1/-1;border:1px dashed var(--faint);border-radius:18px;padding:40px 18px;text-align:center;color:var(--mut)}
 .empty h3{font-size:26px;color:var(--ink);margin-bottom:4px}
-.fine{font-size:13px;color:var(--mut);margin:20px 0 0}
 .ig{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:15px;text-decoration:none;color:var(--ink)}
 .ig svg{width:18px;height:18px}
 
@@ -265,12 +267,14 @@ textarea.inp{min-height:110px;resize:vertical}
 
  <section id="gallery"><div class="wrap">
   <div class="shead"><p class="eyebrow">Gallery</p><h2>Pick a piece</h2></div>
+  <div class="card gal">
   <div class="gbar">
    <div class="tabs" role="tablist" aria-label="Categories" id="tabs"></div>
    <button class="ibtn fbtn" id="filterBtn" type="button" aria-label="Filter pieces" aria-controls="filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg><i id="fdot" hidden></i></button>
   </div>
-  <div class="grid" id="grid" role="tabpanel"></div>
-  <p class="fine">* Price note coming soon.</p>
+  <div class="gscroll" id="gscroll" tabindex="0" aria-label="Pieces, scroll to see more"><div class="grid" id="grid" role="tabpanel"></div></div>
+  <div class="gfoot"><span id="gcount"></span><span>* Price note coming soon.</span></div>
+  </div>
  </div></section>
 
  <section id="more"><div class="wrap">
@@ -704,7 +708,7 @@ $('#flist').replaceChildren(...TAGS.map(t=>{const li=document.createElement('li'
  b.onclick=()=>{tag=t.k;markTags();render();setTimeout(()=>closeOv($('#filter')),180)};li.append(b);return li}));
 const markTags=()=>{$$('#flist button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===tag));$('#fdot').hidden=tag==='all'};
 $('#filterBtn').onclick=()=>openOv('filter');
-function render(){const g=$('#grid'),list=ITEMS.filter(i=>i.cat===cat&&(tag==='all'||i.tag===tag));
+function render(){const g=$('#grid'),list=ITEMS.filter(i=>i.cat===cat&&(tag==='all'||i.tag===tag));$('#gscroll').scrollTop=0;$('#gcount').textContent=list.length+(list.length===1?' piece':' pieces');
  if(!list.length){const tn=TAGS.find(t=>t.k===tag).n;g.innerHTML='<div class="empty"><h3>On the way</h3><span>'+(cat==='stories'?'Stories are being written. Check back soon.':tag!=='all'?'No '+tn.toLowerCase()+' pieces here yet.':'Nothing here yet. Check back soon.')+'</span></div>';return}
  g.replaceChildren(...list.map(it=>{const b=document.createElement('button');b.type='button';b.className='art';
   b.innerHTML='<div class="thumb'+(it.kind==='drawing'?' d':'')+'"><img alt="" loading="lazy"></div><h3></h3><span></span>';
