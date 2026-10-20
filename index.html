@@ -39,10 +39,10 @@ button{font-family:inherit}
 #intro{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--bg);transition:opacity .6s ease,visibility .6s}
 #intro.out{opacity:0;visibility:hidden}
 #intro svg{width:120px;height:auto;color:var(--ink);overflow:visible}
-#intro .p{fill:currentColor;fill-opacity:0;stroke:currentColor;stroke-width:1.4;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 1s cubic-bezier(.6,0,.3,1) forwards,fillin .45s .85s ease forwards}
+#intro .p{fill:currentColor;fill-opacity:0;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 1s cubic-bezier(.6,0,.3,1) forwards,fillin .45s .85s ease forwards}
 #intro .p2{animation-delay:.2s,1s}
 #intro svg{animation:pop .7s 1.35s cubic-bezier(.5,0,.2,1) forwards}
-@keyframes draw{to{stroke-dashoffset:0}}@keyframes fillin{to{fill-opacity:1;stroke-width:0}}@keyframes pop{to{transform:scale(1.15);opacity:0}}
+@keyframes draw{to{stroke-dashoffset:0}}@keyframes fillin{to{fill-opacity:1;stroke-width:5}}@keyframes pop{to{transform:scale(1.15);opacity:0}}
 
 /* header */
 .top{position:sticky;top:0;z-index:30;transition:background .3s,box-shadow .3s}
@@ -60,9 +60,9 @@ section{padding:56px 0}
 
 /* hero */
 .hero{min-height:calc(100svh - 64px);display:grid;place-items:center;text-align:center;padding:30px 0 60px}
-.hero h1{font-size:clamp(46px,11vw,112px);line-height:1}
+.hero h1{font-size:clamp(40px,10vw,112px);line-height:1;text-wrap:balance}
 .hero h1 i{font-style:italic}
-.hero p{max-width:34ch;margin:22px auto 0;font-size:clamp(17px,2.2vw,20px);color:var(--mut)}
+.hero p{max-width:62ch;margin:22px auto 0;font-size:clamp(15px,2vw,19px);color:var(--mut);text-wrap:balance}
 .ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
 .hero .in{opacity:0;transform:translateY(16px)}
 .ready .hero .in{animation:rise .9s cubic-bezier(.2,.8,.2,1) forwards}
@@ -82,25 +82,27 @@ section{padding:56px 0}
 .me::after{content:"";position:absolute;left:50%;bottom:-11px;width:2px;height:9px;background:var(--ink);transform:translateX(-50%)}
 .tip{position:absolute;bottom:calc(100% + 10px);left:0;opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .2s,transform .3s;border-radius:14px;padding:9px 13px;white-space:nowrap;text-align:left;line-height:1.25;color:var(--ink)}
 .tip small{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
-.tip b{font-family:"IM Fell English",Georgia,serif;font-weight:400;font-size:24px}
+.tip b{font-weight:600;font-size:20px;font-variant-numeric:tabular-nums}
 .me:hover .tip,.me:focus-visible .tip,.me.open .tip{opacity:1;transform:none}
 .me.r .tip{left:auto;right:0}
 .lap{width:clamp(110px,26vw,190px);margin-bottom:-6px}
+.float{display:block;animation:float 3.6s ease-in-out infinite}.float.f2{animation-duration:4.4s;animation-delay:-1.2s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 .lap img{width:100%;filter:drop-shadow(0 12px 18px rgba(0,0,0,.18))}
 .ends{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
 .tile{padding:16px 14px 14px;text-align:left}
-.tile b{display:block;font-family:"IM Fell English",Georgia,serif;font-weight:400;font-size:clamp(22px,4.6vw,32px);line-height:1.1;font-variant-numeric:tabular-nums}
-.tile span{font-size:13px;color:var(--mut)}
+.tile b{display:block;font-weight:600;font-size:clamp(19px,4.2vw,28px);line-height:1.15;letter-spacing:-.01em;font-variant-numeric:tabular-nums;text-transform:uppercase}
+.tile span{display:block;margin-top:4px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
 .lapname{text-align:right;font-size:13px;color:var(--mut);margin:8px 0 0}
 
 /* gallery */
 .gbar{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1}
 .tabs::-webkit-scrollbar{display:none}
-.tab{position:relative;border:0;background:none;color:var(--mut);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;padding:14px 10px;cursor:pointer;white-space:nowrap}
+.tab{position:relative;border:0;background:none;color:var(--mut);font-size:clamp(11px,3vw,12.5px);letter-spacing:.06em;text-transform:uppercase;padding:14px 7px;cursor:pointer;white-space:nowrap}
 .tab[aria-selected=true]{color:var(--ink)}
-.tab[aria-selected=true]::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;background:var(--ink);border-radius:2px}
+.tab[aria-selected=true]::after{content:"";position:absolute;left:7px;right:7px;bottom:-1px;height:2px;background:var(--ink);border-radius:2px}
 .fbtn{position:relative}
 .fbtn i{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px}
@@ -127,11 +129,12 @@ section{padding:56px 0}
 .sbar{position:absolute;left:12px;right:12px;bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:99px;padding:6px 6px 6px 16px;color:var(--ink)}
 .sbar span{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sbar .ar{display:flex;gap:4px;flex:none}.sbar .ibtn{width:38px;height:38px}
-.plans{list-style:none;padding:0;margin:26px 0 0;font-family:"IM Fell English",Georgia,serif;font-size:clamp(22px,4vw,30px);line-height:1.28}
+.plans{list-style:none;padding:0;margin:22px 0 0;border-top:1px solid var(--line);font-family:"IM Fell English",Georgia,serif;font-size:clamp(22px,4vw,30px);line-height:1.28}
 .plans li{padding:12px 0;border-bottom:1px solid var(--line)}
 .open{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px}
 .tag{border:1px solid var(--line);border-radius:99px;padding:6px 13px;font-size:15px}
-@media(min-width:860px){.moreg{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}.plans{margin-top:0}}
+@media(min-width:860px){.moreg{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:stretch}.moreg>div:last-child{display:flex;flex-direction:column;justify-content:space-between}.plans{margin-top:0}.slide{aspect-ratio:auto;min-height:100%}}
+.open small{width:100%}
 
 /* contact */
 .talk{padding:30px 24px 22px;text-align:center}
@@ -215,17 +218,17 @@ textarea.inp{min-height:110px;resize:vertical}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.hero .in{opacity:1;transform:none}html{scroll-behavior:auto}#intro{display:none}}
 </style></head><body>
 
-<div id="intro" aria-hidden="true"><svg viewBox="-2 -2 98 52"><path class="p" d="M0 48 L23 0 L46 48 Z"/><path class="p p2" fill-rule="evenodd" d="M52 0 H76 C92 0 92 28 76 28 L92 48 H80 L66 29 H63 V48 H52 Z M63 9 V19 H75 C81 19 81 9 75 9 Z"/></svg></div>
+<div id="intro" aria-hidden="true"><svg viewBox="-4 -4 102 56"><path class="p" d="M2 47 L23 2 L44 47 Z"/><path class="p p2" fill-rule="evenodd" d="M52 1 H74 C93 1 93 29 73 29 Q83 38 92 47 H79 Q71 38 64 30 H63 V47 H52 Z M62 8 V22 H73 C82 22 82 8 73 8 Z"/></svg></div>
 
 <header class="top" id="top"><div class="wrap">
  <button class="ibtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg></button>
- <a class="logo" href="#home" aria-label="AR Studio, home"><svg viewBox="-2 -2 98 52" fill="currentColor" aria-hidden="true"><path d="M0 48 L23 0 L46 48 Z"/><path fill-rule="evenodd" d="M52 0 H76 C92 0 92 28 76 28 L92 48 H80 L66 29 H63 V48 H52 Z M63 9 V19 H75 C81 19 81 9 75 9 Z"/></svg></a>
+ <a class="logo" href="#home" aria-label="AR Studio, home"><svg viewBox="-4 -4 102 56" fill="currentColor" stroke="currentColor" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="M2 47 L23 2 L44 47 Z"/><path fill-rule="evenodd" d="M52 1 H74 C93 1 93 29 73 29 Q83 38 92 47 H79 Q71 38 64 30 H63 V47 H52 Z M62 8 V22 H73 C82 22 82 8 73 8 Z"/></svg></a>
  <button class="ibtn" id="themeBtn" type="button" aria-label="Switch to dark mode"></button>
 </div></header>
 
 <main id="home">
  <div class="wrap hero"><div>
-  <h1 class="in">Welcome, kind helper, <i>to AR</i></h1>
+  <h1 class="in">Welcome kind helper</h1>
   <p class="in">Wander through my arts and illustrations, and buy the one that catches your eye. Every piece gets me closer to a new laptop.</p>
   <div class="ctas in"><a class="pill" href="#gallery">Browse Gallery</a><a class="pill glass" href="#progress">Check Progress</a></div>
  </div></div>
@@ -236,10 +239,10 @@ textarea.inp{min-height:110px;resize:vertical}
    <div class="track" id="track">
     <div class="rail">
      <div class="bar" role="progressbar" aria-label="Laptop fund" aria-valuemin="0" aria-valuemax="100" id="pbar"><div class="fill" id="fill"></div></div>
-     <button class="me" id="me" type="button" aria-describedby="tip"><img id="avatar" alt="Me"><span class="tip glass" id="tip" role="tooltip"><small>Amount raised</small><b id="tipAmt">₦0.00</b></span></button>
+     <button class="me" id="me" type="button" aria-describedby="tip"><span class="float"><img id="avatar" alt="Me"></span><span class="tip glass" id="tip" role="tooltip"><small>Amount raised</small><b id="tipAmt">₦0.00</b></span></button>
      <div class="ends"><span>Me</span><span>Goal</span></div>
     </div>
-    <div class="lap"><img id="lapImg" alt="Dell Latitude 7420 2-in-1"></div>
+    <div class="lap"><span class="float f2"><img id="lapImg" alt="Dell Latitude 7420 2-in-1"></span></div>
    </div>
    <p class="lapname">Dell Latitude 7420 2-in-1</p>
   </div>
@@ -258,7 +261,6 @@ textarea.inp{min-height:110px;resize:vertical}
   </div>
   <div class="grid" id="grid" role="tabpanel"></div>
   <p class="fine">* Price note coming soon.</p>
-  <a class="ig" href="https://www.instagram.com/artistaamuro" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>More of my work on Instagram</a>
  </div></section>
 
  <section id="more"><div class="wrap">
@@ -267,7 +269,7 @@ textarea.inp{min-height:110px;resize:vertical}
    <div class="slide" id="slide" aria-roledescription="carousel" aria-label="Snapshots">
     <div class="sbar glass"><span id="scap"></span><div class="ar"><button class="ibtn" id="sPrev" type="button" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button class="ibtn" id="sNext" type="button" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div></div>
    </div>
-   <div><ul class="plans" id="plans"></ul><div class="open"><span class="tag">Open to internships</span><span class="tag">Open to jobs</span></div></div>
+   <div><ul class="plans" id="plans"></ul><div class="open"><span class="tag">Open to internships</span><span class="tag">Open to jobs</span><span class="tag">Open to scholarships</span></div></div>
   </div>
  </div></section>
 
@@ -281,7 +283,7 @@ textarea.inp{min-height:110px;resize:vertical}
     <a class="glass" href="https://www.linkedin.com/in/ayomiposi-amuro-315776368" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.75h4V21H3V9.75Zm6.5 0h3.83v1.54h.06c.53-1 1.84-2.06 3.79-2.06 4.05 0 4.8 2.67 4.8 6.13V21h-4v-5.08c0-1.21-.02-2.77-1.69-2.77-1.69 0-1.95 1.32-1.95 2.68V21h-4V9.75Z"/></svg></a>
     <a class="glass" href="https://www.instagram.com/artistaamuro" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
    </div>
-   <div class="foot"><span class="l"><svg viewBox="-2 -2 98 52" fill="currentColor" aria-hidden="true"><path d="M0 48 L23 0 L46 48 Z"/><path fill-rule="evenodd" d="M52 0 H76 C92 0 92 28 76 28 L92 48 H80 L66 29 H63 V48 H52 Z M63 9 V19 H75 C81 19 81 9 75 9 Z"/></svg><span id="yr">2026</span></span>
+   <div class="foot"><span class="l"><svg viewBox="-4 -4 102 56" fill="currentColor" stroke="currentColor" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="M2 47 L23 2 L44 47 Z"/><path fill-rule="evenodd" d="M52 1 H74 C93 1 93 29 73 29 Q83 38 92 47 H79 Q71 38 64 30 H63 V47 H52 Z M62 8 V22 H73 C82 22 82 8 73 8 Z"/></svg><span id="yr">2026</span></span>
     <button class="ibtn heart" id="heart" type="button" aria-label="Send some love" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg></button></div>
   </div>
  </div></section>
@@ -608,6 +610,8 @@ const ITEMS=[                 // newest first. cat: arts | illustrations | stori
  {id:'amuro-pen',name:'Amuro, in pen',cat:'arts',tag:'people',img:A.pen,kind:'drawing'},
  {id:'amuro-colour',name:'Amuro, in colour',cat:'illustrations',tag:'people',img:A.colour,kind:'photo'},
  {id:'cap-glasses',name:'Cap & glasses',cat:'photos',tag:'things',img:A.cap,kind:'photo'},
+ // Preview slots to see the layout when it scrolls. Delete these lines once real pieces are added.
+ ...Array.from({length:10},(_,i)=>({id:'preview-'+(i+1),name:'Preview piece '+String(i+1).padStart(2,'0'),cat:['arts','arts','illustrations','photos','arts'][i%5],tag:['people','random','anime','things','people'][i%5],img:[A.ewuro,A.pen,A.colour,A.cap][i%4],kind:i%4<2?'drawing':'photo'})),
 ];
 const CATS=[{k:'arts',n:'Arts'},{k:'illustrations',n:'Illustrations'},{k:'stories',n:'Stories'},{k:'photos',n:'Photos'}];
 const TAGS=[{k:'all',n:'Everything'},{k:'people',n:'People'},{k:'things',n:'Things'},{k:'anime',n:'Anime'},{k:'random',n:'Random'}];
@@ -689,7 +693,7 @@ mark();markTags();render();
 /* more */
 $('#plans').replaceChildren(...PLANS.map(p=>{const li=document.createElement('li');li.textContent=p;return li}));
 {const sl=$('#slide');let i=0,tm=null;
- const figs=SHOW.map(s=>{const f=document.createElement('figure');f.innerHTML='<img alt="">';const im=f.firstChild;im.src=s.src;im.alt=s.cap;if(s.cover)im.className='cover';sl.insertBefore(f,sl.firstChild);return f});
+ const figs=SHOW.map(s=>{const f=document.createElement('figure');f.innerHTML='<img alt="">';const im=f.firstChild;im.src=s.src;im.alt=s.cap;if(s.cover)im.className='cover';sl.insertBefore(f,sl.querySelector('.sbar'));return f});
  const go=k=>{i=(k+SHOW.length)%SHOW.length;figs.forEach((f,j)=>f.classList.toggle('on',j===i));$('#scap').textContent=(i+1)+'/'+SHOW.length+'  '+SHOW[i].cap};
  const restart=()=>{clearInterval(tm);if(!reduce)tm=setInterval(()=>go(i+1),4500)};
  $('#sPrev').onclick=()=>{go(i-1);restart()};$('#sNext').onclick=()=>{go(i+1);restart()};
