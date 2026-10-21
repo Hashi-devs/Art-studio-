@@ -3,6 +3,8 @@
   "name": "art-studio",
   "main": "src/worker.js",
   "compatibility_date": "2026-06-01",
+  // Keep the settings you add in the dashboard (Variables and Secrets) when GitHub pushes redeploy.
+  "keep_vars": true,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
