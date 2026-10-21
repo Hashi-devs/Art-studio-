@@ -61,7 +61,18 @@ in Supabase or Paystack and update it in Cloudflare.
 3. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up".
 4. Copy the Project URL and keys from **Project Settings → API Keys**.
 
-Updates for an older database (each is safe to run twice): `supabase/002_thanks.sql`, `supabase/003_tags.sql`.
+Updates for an older database (each is safe to run twice): `supabase/002_thanks.sql`, `supabase/003_tags.sql`, `supabase/004_games_tools.sql`.
+
+## Emails when someone is interested in a game or tool (optional)
+
+Messages always appear in /admin → **Messages**. To also get each one by email:
+1. Make a free account at [resend.com](https://resend.com) with the email you want them sent to.
+2. Create an API key (**API Keys → Create**).
+3. In Cloudflare → **Settings → Variables and Secrets** (the top one, not Build), add as **Secret**:
+   `RESEND_API_KEY` = the key, and `NOTIFY_EMAIL` = that same email. Deploy.
+
+Without a domain, Resend only sends to the email on your Resend account, which is exactly what this needs.
+Tap **Reply** in your mail app and it goes straight to the person who wrote.
 
 ## Going live with real money
 
