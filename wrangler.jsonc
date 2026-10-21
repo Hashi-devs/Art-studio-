@@ -5,6 +5,13 @@
   "compatibility_date": "2026-06-01",
   // Keep the settings you add in the dashboard (Variables and Secrets) when GitHub pushes redeploy.
   "keep_vars": true,
+  // Public settings (safe to be in the code). The three private ones — ADMIN_EMAIL,
+  // SUPABASE_SERVICE_ROLE_KEY and PAYSTACK_SECRET_KEY — go in the dashboard as Secrets.
+  "vars": {
+    "SUPABASE_URL": "https://bpguacbcusxxoyrqpbdj.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_2fi7hyz1V9SEuBYJv6J4GQ_Y2RiB8N-",
+    "SITE_URL": "https://art-studio.ar-studio.workers.dev"
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
