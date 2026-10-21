@@ -559,7 +559,7 @@ async function auth(grant,body){const r=await fetch(CFG.supabaseUrl+'/auth/v1/to
 async function token(){if(!SES)throw new Error('Please log in');if(Date.now()>SES.exp){SES={...SES,...await auth('refresh_token',{refresh_token:SES.refresh})};store.set(SES)}return SES.token}
 async function api(path,opts={},retry=true){
  const r=await fetch('/api'+path,{...opts,headers:{'Content-Type':'application/json',Authorization:'Bearer '+await token()}});
- const d=await r.json().catch(()=>({ok:false,error:'The server didn’t answer. Check your Vercel settings.'}));
+ const d=await r.json().catch(()=>({ok:false,error:'The server didn’t answer. Check your Cloudflare settings.'}));
  if(r.status===401&&retry&&SES){SES.exp=0;try{return await api(path,opts,false)}catch(e){logout('Please log in again');throw e}}
  if(r.status===403){logout(d.error);throw new Error(d.error)}
  if(!r.ok||d.ok===false)throw new Error(d.error||'Something went wrong');return d}
@@ -723,7 +723,7 @@ $('#refresh').onclick=()=>loadAll().then(()=>toast('Up to date'));
 /* start */
 (async()=>{
  try{const r=await fetch('/api/config');CFG=await r.json();if(!CFG.ok)throw new Error(CFG.error)}
- catch(e){$('#login').hidden=false;$('#loginBtn').disabled=true;$('#loginErr').textContent='The backend isn’t set up yet. Add the Supabase settings in Vercel, then redeploy.';return}
+ catch(e){$('#login').hidden=false;$('#loginBtn').disabled=true;$('#loginErr').textContent='The backend isn’t set up yet. Add your settings in Cloudflare (Settings → Variables and Secrets), then deploy.';return}
  SES=store.get();if(SES&&SES.refresh){try{await token();await enter();return}catch(e){store.set(null);SES=null}}
  $('#login').hidden=false})();
 </script></body></html>
