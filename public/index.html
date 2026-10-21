@@ -925,28 +925,63 @@ function binder(a){const B=IMG.binder,bw=B.naturalWidth,bh=B.naturalHeight,P={x:
  x.globalCompositeOperation='multiply';x.drawImage(a,c.width*P.x+(pw-w)/2,c.height*P.y+(ph-h)/2,w,h);x.globalCompositeOperation='source-over';return c}
 // The drawing placed on the chosen background (drawings only; photos stay as they are)
 const styled=a=>bgPick==='clear'?a:bgPick==='binder'?binder(a):mockup(a,{layout:'flat',paper:IMG[bgPick],blend:'multiply'});
-function paint(){const cv=$('#readyCv'),v=cur.kind==='drawing'?styled(shrink(ART,900)):shrink(ART,900);cv.width=v.width;cv.height=v.height;cv.getContext('2d').drawImage(v,0,0);cv.classList.toggle('chk',cur.kind==='drawing'&&bgPick==='clear')}
+function dlLabel(){const z=cur&&cur.kind==='drawing'&&bgPick==='clear';if(step===3)$('#nextBtn').textContent=z?'Download PNG + SVG':'Download';
+ $('#readyNote').textContent=cur&&cur.kind==='drawing'?(z?'Line art comes as a ZIP: a clear PNG plus an SVG vector you can drop straight into Figma.':'Pick a background. Clear gives you the line art as PNG + SVG for Figma.'):'Full quality, exactly as I made it.'}
+function paint(){dlLabel();const cv=$('#readyCv'),v=cur.kind==='drawing'?styled(shrink(ART,900)):shrink(ART,900);cv.width=v.width;cv.height=v.height;cv.getContext('2d').drawImage(v,0,0);cv.classList.toggle('chk',cur.kind==='drawing'&&bgPick==='clear')}
 async function showReady(){fileBlob=null;ART=null;bgPick='white';const w=$('#readyWait'),b=$('#nextBtn'),cv=$('#readyCv');
  w.hidden=false;w.textContent='Getting your file…';cv.width=cv.height=0;b.disabled=true;$('#bgs').hidden=cur.kind!=='drawing';
- $('#readyNote').textContent=cur.kind==='drawing'?'Pick a background. Clear keeps just the lines.':'Full quality, exactly as I made it.';
  try{const r=await fetch(cur.img);if(!r.ok)throw 0;fileBlob=await r.blob();const im=new Image();im.src=URL.createObjectURL(fileBlob);await im.decode();
   await Promise.all(Object.values(IMG).map(i=>i.decode().catch(()=>{})));
   ART=document.createElement('canvas');ART.width=im.naturalWidth;ART.height=im.naturalHeight;ART.getContext('2d').drawImage(im,0,0);
   if(cur.kind==='drawing')$('#bgs').replaceChildren(...BGS.map(g=>{const e=document.createElement('button');e.type='button';e.className='bg';e.innerHTML='<i></i>'+g.n;
    const i=e.querySelector('i');if(g.k==='clear')i.style.background='repeating-conic-gradient(#e6e6e6 0 25%,#fff 0 50%) 0 0/8px 8px';else i.style.backgroundImage='url('+A['t_'+g.k]+')';
    e.setAttribute('aria-pressed',g.k===bgPick);e.onclick=()=>{bgPick=g.k;$$('.bg').forEach(x=>x.setAttribute('aria-pressed',x===e));paint()};return e}));
-  paint();w.hidden=true;b.disabled=false}
+  paint();w.hidden=true;b.disabled=false;dlLabel()}
  catch(e){w.textContent='Couldn’t load your file. Check your connection and reopen this page.'}}
 async function save(blob,name){
  if(dl){try{await dl.save({filename:name,data:blob});return 'saved'}catch(e){return e&&e.code==='declined'?'declined':'error'}}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);return 'saved'}
+/* Trace line art into smooth vector outlines (SVG), the same way Sketch Studio does, for Figma. */
+function trace(c){
+ const W=c.width,H=c.height,d=c.getContext('2d').getImageData(0,0,W,H).data,V=W+1,E=new Map(),
+ on=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&d[(y*W+x)*4+3]>90,add=(a,b)=>{const l=E.get(a);l?l.push(b):E.set(a,[b])};
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(on(x,y)){const a=y*V+x;
+  if(!on(x,y-1))add(a,a+1);if(!on(x+1,y))add(a+1,a+1+V);if(!on(x,y+1))add(a+1+V,a+V);if(!on(x-1,y))add(a+V,a)}
+ let p='';const m=(a,b)=>((a[0]+b[0])/2).toFixed(1)+' '+((a[1]+b[1])/2).toFixed(1);
+ for(const[s,l]of E)while(l.length){
+  const q=[];let c2=s,lx=-9,ly=-9;
+  do{const x=c2%V,y=(c2/V)|0;if(Math.hypot(x-lx,y-ly)>=1.5){q.push([x,y]);lx=x;ly=y}const n=E.get(c2);if(!n||!n.length)break;c2=n.pop()}while(c2!==s);
+  if(q.length<8)continue;const n=q.length;
+  p+='M'+m(q[n-1],q[0]);for(let i=0;i<n;i++)p+='Q'+q[i][0]+' '+q[i][1]+' '+m(q[i],q[(i+1)%n]);p+='Z'}
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'"><path fill="#16181d" fill-rule="evenodd" d="'+p+'"/></svg>'}
+/* A tiny ZIP maker (files stored as they are, no packages needed). */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+function zip(files){const enc=new TextEncoder(),parts=[],dir=[];let off=0;const now=new Date(),
+ dt=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1))&0xFFFF,dd=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
+ for(const f of files){const name=enc.encode(f.name),data=f.data,crc=crc32(data),h=new DataView(new ArrayBuffer(30));
+  [[0,0x04034b50,4],[4,20,2],[6,0x0800,2],[8,0,2],[10,dt,2],[12,dd,2],[14,crc,4],[18,data.length,4],[22,data.length,4],[26,name.length,2],[28,0,2]].forEach(([o,v,s])=>s===4?h.setUint32(o,v,true):h.setUint16(o,v,true));
+  parts.push(new Uint8Array(h.buffer),name,data);
+  const c=new DataView(new ArrayBuffer(46));[[0,0x02014b50,4],[4,20,2],[6,20,2],[8,0x0800,2],[10,0,2],[12,dt,2],[14,dd,2],[16,crc,4],[20,data.length,4],[24,data.length,4],[28,name.length,2],[30,0,2],[32,0,2],[34,0,2],[36,0,2],[38,0,4],[42,off,4]].forEach(([o,v,s])=>s===4?c.setUint32(o,v,true):c.setUint16(o,v,true));
+  dir.push(new Uint8Array(c.buffer),name);off+=30+name.length+data.length}
+ const size=dir.reduce((s,a)=>s+a.length,0),end=new DataView(new ArrayBuffer(22));
+ [[0,0x06054b50,4],[4,0,2],[6,0,2],[8,files.length,2],[10,files.length,2],[12,size,4],[16,off,4],[20,0,2]].forEach(([o,v,s])=>s===4?end.setUint32(o,v,true):end.setUint16(o,v,true));
+ return new Blob([...parts,...dir,new Uint8Array(end.buffer)],{type:'application/zip'})}
 async function download(){if(!fileBlob)return;
  const slug=String(cur.name||cur.id).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'ar-piece';
  let blob=fileBlob,name;
- if(cur.kind==='drawing'&&bgPick!=='clear'){blob=await new Promise(r=>styled(ART).toBlob(r,'image/jpeg',.92));name=slug+'-'+bgPick+'.jpg'}
+ if(cur.kind==='drawing'&&bgPick==='clear'){
+  const b=$('#nextBtn');b.disabled=true;b.textContent='Preparing your files…';await new Promise(r=>setTimeout(r,30));
+  const png=fileBlob.type==='image/png'?fileBlob:await new Promise(r=>ART.toBlob(r,'image/png'));
+  const svg=trace(shrink(ART,1600)),enc=new TextEncoder();
+  blob=zip([{name:slug+'.png',data:new Uint8Array(await png.arrayBuffer())},{name:slug+'.svg',data:enc.encode(svg)},
+   {name:'How to use.txt',data:enc.encode('Thank you for supporting AR Studio.\r\n\r\n'+slug+'.png  is the line art on a clear background.\r\n'+slug+'.svg  is the same line art as a vector. Drag it into Figma (or Illustrator, Canva, Inkscape) and it stays sharp at any size.\r\n')}]);
+  name=slug+'-line-art.zip';b.disabled=false;dlLabel()}
+ else if(cur.kind==='drawing'){blob=await new Promise(r=>styled(ART).toBlob(r,'image/jpeg',.92));name=slug+'-'+bgPick+'.jpg'}
  else name=slug+'.'+({'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[fileBlob.type]||'png');
  const r=await save(blob,name);
- if(r==='saved'){if(cur.paid)clearRef();$('#doneH').textContent='It’s yours';$('#badge').hidden=false;$('#doneTxt').textContent=cur.name+' is downloaded. Thank you for getting me a little closer.';setStep(4);tick(1.6)}
+ if(r==='saved'){if(cur.paid)clearRef();$('#doneH').textContent='It’s yours';$('#badge').hidden=false;
+  $('#doneTxt').textContent=cur.name+(name.endsWith('.zip')?' is downloaded as a ZIP with the PNG and the SVG for Figma.':' is downloaded.')+' Thank you for getting me a little closer.';setStep(4);tick(1.6)}
  else if(r==='error')$('#stepTxt').textContent='Download failed. Try again.'}
 (async()=>{try{dl=window.claude&&await window.claude.use('downloads')}catch(e){dl=null}})();
 
