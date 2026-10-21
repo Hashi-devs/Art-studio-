@@ -120,6 +120,7 @@ section{padding:56px 0}
 .art{border:0;background:none;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
 .thumb{aspect-ratio:4/5;border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--line);transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
 .thumb img{width:100%;height:100%;object-fit:cover}
+.grid.ph{display:block;columns:2;column-gap:14px}@media(min-width:760px){.grid.ph{columns:4;column-gap:20px}}.grid.ph .art{display:block;width:100%;break-inside:avoid;margin-bottom:18px}.grid.ph .thumb{aspect-ratio:auto}.grid.ph .thumb img{height:auto;display:block}.grid.ph .empty{display:block}
 .thumb.d{background:#f1f0ec}.thumb.d img{object-fit:contain;padding:12px}
 .art:active .thumb{transform:scale(.97)}
 @media(hover:hover){.art:hover .thumb{transform:translateY(-4px) rotate(-.6deg)}}
@@ -163,6 +164,7 @@ section{padding:56px 0}
 .soc{display:flex;justify-content:center;gap:12px;margin:24px 0 6px}
 .soc a{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--ink);text-decoration:none;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
 .soc a:active{transform:scale(.9)}.soc svg{width:20px;height:20px}
+.mail{display:inline-flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;justify-content:center}.mail a{color:var(--ink);font-size:16px;text-decoration:none;border-bottom:1px solid var(--faint)}.mail button{border:1px solid var(--line);background:none;color:var(--ink);font:inherit;font-size:13px;border-radius:99px;padding:5px 12px;cursor:pointer}
 .foot{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--mut)}
 .foot .l{display:flex;align-items:center;gap:10px}.foot .l .wm{font-size:20px;padding-top:2px}
 .made{white-space:nowrap;font-size:13px}
@@ -365,6 +367,7 @@ textarea.inp{min-height:110px;resize:vertical}
     <a class="glass" href="https://www.linkedin.com/in/ayomiposi-amuro-315776368" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.75h4V21H3V9.75Zm6.5 0h3.83v1.54h.06c.53-1 1.84-2.06 3.79-2.06 4.05 0 4.8 2.67 4.8 6.13V21h-4v-5.08c0-1.21-.02-2.77-1.69-2.77-1.69 0-1.95 1.32-1.95 2.68V21h-4V9.75Z"/></svg></a>
     <a class="glass" href="https://www.instagram.com/artistaamuro" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
    </div>
+   <div class="mail"><a href="mailto:arstudios.hello@gmail.com">arstudios.hello@gmail.com</a><button type="button" id="copyMail">Copy</button></div>
    <div class="foot"><span class="l"><span class="wm" aria-hidden="true">AR Studios</span><span id="yr">2026</span></span>
     <span class="made">Made with <button class="heart" id="heart" type="button" aria-label="Send some love" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg></button> by Àmúró and Klaus</span></div>
   </div>
@@ -895,7 +898,7 @@ function buildTags(){$('#flist').replaceChildren(...TAGS.map(t=>{const li=docume
  b.onclick=()=>{tag=t.k;markTags();render();setTimeout(()=>closeOv($('#filter')),180)};li.append(b);return li}))}
 const markTags=()=>{$$('#flist button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===tag));$('#fdot').hidden=tag==='all'};
 $('#filterBtn').onclick=()=>openOv('filter');
-function render(){const g=$('#grid'),list=ITEMS.filter(i=>i.cat===cat&&(tag==='all'||i.tag===tag));$('#gscroll').scrollTop=0;$('#gcount').textContent=list.length+(list.length===1?' piece':' pieces');
+function render(){const g=$('#grid');g.classList.toggle('ph',cat==='photos');const list=ITEMS.filter(i=>i.cat===cat&&(tag==='all'||i.tag===tag));$('#gscroll').scrollTop=0;$('#gcount').textContent=list.length+(list.length===1?' piece':' pieces');
  if(!list.length){const tn=TAGS.find(t=>t.k===tag).n;g.innerHTML='<div class="empty"><h3>On the way</h3><span>'+(cat==='stories'?'Stories are being written. Check back soon.':tag!=='all'?'No '+tn.toLowerCase()+' pieces here yet.':'Nothing here yet. Check back soon.')+'</span></div>';return}
  g.replaceChildren(...list.map(it=>{const b=document.createElement('button');b.type='button';b.className='art';
   b.innerHTML='<div class="thumb'+(it.kind==='drawing'?' d':'')+'"><img alt="" loading="lazy"></div><h3></h3><span></span>';
@@ -935,6 +938,7 @@ $('#plans').replaceChildren(...PLANS.map(p=>{const e=document.createElement('p')
   const b=await new Promise(r=>o.toBlob(r,'image/png'));await save(b,'my-ar-doodle.png')}}
 
 /* contact heart */
+{const b=$('#copyMail');b.onclick=async()=>{try{await navigator.clipboard.writeText('arstudios.hello@gmail.com');b.textContent='Copied'}catch(e){b.textContent='Hold the email to copy'}setTimeout(()=>b.textContent='Copy',2200)}}
 $('#heart').onclick=e=>{const h=e.currentTarget,on=h.classList.toggle('on');h.setAttribute('aria-pressed',on);if(on)tick(1.5)};
 
 /* donate */

@@ -7,6 +7,9 @@ const MAX_DOWNLOADS = 10;
 const CATS = ['arts', 'illustrations', 'stories', 'photos', 'games', 'tools'];
 // Games and tools aren't bought at a fixed price: people send their interest instead.
 const TALK = ['games', 'tools'];
+
+/* A preview path starting with / is a file on the site itself (used for Sketch Studio's card). */
+const previewUrl = (sb, path) => String(path || '').startsWith('/') ? path : sb.storage.publicUrl('previews', path);
 const cleanLink = v => { const u = String(v || '').trim().slice(0, 300); if (!u) return null; if (!/^https?:\/\/[^\s]+\.[^\s]+$/i.test(u)) throw err(400, 'The preview link should start with https://'); return u; };
 const KINDS = ['drawing', 'photo'];
 // Filter tags are whatever the admin types: lower case, letters, numbers, spaces, & ' -
@@ -23,7 +26,7 @@ async function site({ sb, ord }) {
     sb.db.select('pieces', 'published=eq.true&select=id,name,cat,tag,kind,price,description,link,preview_path,created_at&order=created_at.desc'),
     ord.totals(),
   ]);
-  const pieces = rows.map(p => ({ id: p.id, name: p.name, cat: p.cat, tag: p.tag, kind: p.kind, price: p.price, description: p.description || '', link: p.link || null, talk: TALK.includes(p.cat), date: p.created_at, img: sb.storage.publicUrl('previews', p.preview_path) }));
+  const pieces = rows.map(p => ({ id: p.id, name: p.name, cat: p.cat, tag: p.tag, kind: p.kind, price: p.price, description: p.description || '', link: p.link || null, talk: TALK.includes(p.cat), date: p.created_at, img: previewUrl(sb, p.preview_path) }));
   return json(200, { ok: true, pieces, goal: t.goal, raised: t.raised, sold: t.sold }, PUBLIC_CACHE);
 }
 
@@ -99,7 +102,7 @@ async function thanks({ sb }) {
   const people = rows.map(r => {
     const p = byId[r.piece_id];
     return { id: r.reference.slice(-10), name: r.buyer_name, message: r.note || '', type: r.type, date: r.paid_at,
-      piece: r.type === 'piece' ? { name: r.piece_name, kind: p ? p.kind : 'drawing', img: p ? sb.storage.publicUrl('previews', p.preview_path) : null } : null };
+      piece: r.type === 'piece' ? { name: r.piece_name, kind: p ? p.kind : 'drawing', img: p ? previewUrl(sb, p.preview_path) : null } : null };
   });
   return json(200, { ok: true, people }, PUBLIC_CACHE);
 }
@@ -198,7 +201,7 @@ async function pieces({ request, url, sb }) {
   if (m === 'GET') {
     const [rows, sold] = await Promise.all([sb.db.select('pieces', 'select=*&order=created_at.desc'), sb.db.select('orders', 'status=eq.paid&type=eq.piece&select=piece_id')]);
     const n = {}; sold.forEach(o => { n[o.piece_id] = (n[o.piece_id] || 0) + 1; });
-    return json(200, { ok: true, pieces: rows.map(p => ({ ...p, img: sb.storage.publicUrl('previews', p.preview_path), sold: n[p.id] || 0 })) });
+    return json(200, { ok: true, pieces: rows.map(p => ({ ...p, img: previewUrl(sb, p.preview_path), sold: n[p.id] || 0 })) });
   }
   if (m === 'POST') return json(201, { ok: true, piece: await sb.db.insert('pieces', cleanPiece(await readJson(request), false)) });
   const id = url.searchParams.get('id') || '';
