@@ -1,0 +1,7 @@
+{
+  "name": "ar-studio",
+  "private": true,
+  "description": "AR Studio: sell art to fund a laptop. Static site + Vercel functions (Supabase + Paystack), no dependencies.",
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node test/run.js" }
+}
