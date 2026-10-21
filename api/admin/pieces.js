@@ -17,6 +17,7 @@ function clean(body, partial) {
   if ('tag' in body || !partial) { out.tag = TAGS.includes(body.tag) ? body.tag : 'random'; }
   if ('kind' in body || !partial) { out.kind = KINDS.includes(body.kind) ? body.kind : 'drawing'; }
   if ('price' in body || !partial) { const p = Math.round(Number(body.price ?? 1000)); if (!(p >= 100 && p <= 1000000)) throw Object.assign(new Error('Price must be from ₦100'), { status: 400 }); out.price = p; }
+  if ('description' in body || !partial) out.description = String(body.description || '').trim().slice(0, 600) || null;
   if ('published' in body) out.published = !!body.published;
   if (!partial) {
     if (!validPath(body.preview_path) || !validPath(body.original_path)) throw Object.assign(new Error('Upload the image first'), { status: 400 });

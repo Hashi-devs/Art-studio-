@@ -8,7 +8,7 @@ module.exports = handle(async (req, res) => {
   await adminUser(req);
   const [t, recent, pieces, paidPieces] = await Promise.all([
     totals(),
-    db.select('orders', 'select=reference,type,piece_name,email,note,amount,status,downloads,created_at,paid_at&order=created_at.desc&limit=50'),
+    db.select('orders', 'select=reference,type,piece_name,buyer_name,extra,on_wall,wall_ok,email,note,amount,status,downloads,created_at,paid_at&order=created_at.desc&limit=50'),
     db.select('pieces', 'select=id,published'),
     db.select('orders', 'status=eq.paid&type=eq.piece&select=piece_name'),
   ]);

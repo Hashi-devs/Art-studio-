@@ -65,7 +65,12 @@ in Supabase or Paystack and update it in Vercel.
    [Paystack test card](https://paystack.com/docs/payments/test-payments/).
 3. You should come back to the studio and be able to download it. The sale shows up in /admin.
 
+## Updates to run in Supabase
+If your database was set up before an update, paste these files into **SQL Editor → New query → Run** (each is safe to run twice):
+- `supabase/002_thanks.sql`: piece descriptions, buyer names, extra amounts and the Thank-yous wall.
+
 ## Changing things
 - **Goal**: tap **Edit** on the Goal tile in /admin.
-- **Pieces**: add, hide, edit or delete them in /admin.
+- **Pieces**: add, delist, edit or delete them in /admin. Each piece can have a description.
+- **Thank-yous wall**: in /admin → Recent orders, hide anyone's name from the wall. People who chose to stay private can't be shown.
 - **Text, plans, slideshow, social links**: in `index.html`, the block marked `Edit these` near the top of the script.

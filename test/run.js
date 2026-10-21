@@ -38,10 +38,10 @@ test('admin uploads a piece through signed URLs', async () => {
   }
   const bad = await call('/api/admin/pieces', { method: 'POST', headers: A(), body: JSON.stringify({ name: '', cat: 'arts', preview_path: up.body.preview.path, original_path: up.body.original.path }) });
   assert.equal(bad.status, 400);
-  const r = await call('/api/admin/pieces', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Ewuro', cat: 'arts', tag: 'people', kind: 'drawing', price: 1500, published: true, preview_path: up.body.preview.path, original_path: up.body.original.path }) });
+  const r = await call('/api/admin/pieces', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Ewuro', description: 'A portrait in pen.', cat: 'arts', tag: 'people', kind: 'drawing', price: 1500, published: true, preview_path: up.body.preview.path, original_path: up.body.original.path }) });
   assert.equal(r.status, 201); piece = r.body.piece;
   const site = await call('/api/site');
-  assert.equal(site.body.pieces.length, 1); assert.equal(site.body.pieces[0].price, 1500);
+  assert.equal(site.body.pieces.length, 1); assert.equal(site.body.pieces[0].price, 1500); assert.equal(site.body.pieces[0].description, 'A portrait in pen.'); assert(site.body.pieces[0].date);
   assert(!JSON.stringify(site.body).includes('original'), 'site must not reveal the original file');
   assert.equal(await (await fetch(site.body.pieces[0].img)).text(), 'preview-bytes');
 });
@@ -49,13 +49,15 @@ test('private originals are not public', async () => {
   const r = await fetch(`${ORIGIN}/sb/storage/v1/object/public/originals/${piece.original_path}`); assert.equal(r.status, 404);
 });
 test('checkout validates input', async () => {
+  assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'a@b.co' }) })).status, 400, 'name required');
+  assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'a@b.co', name: 'A', extra: -5 }) })).status, 400, 'no negative extra');
   assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'bad' }) })).status, 400);
-  assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: crypto.randomUUID(), email: 'a@b.co' }) })).status, 404);
+  assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: crypto.randomUUID(), email: 'a@b.co', name: 'A' }) })).status, 404);
   assert.equal((await call('/api/checkout', { method: 'GET' })).status, 405);
 });
 let ref;
 test('checkout uses the database price, not the browser', async () => {
-  const r = await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'buyer@x.com', note: 'For Tolu', method: 'transfer', price: 1 }) });
+  const r = await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'buyer@x.com', name: 'Tolu A.', note: 'For Tolu', method: 'transfer', price: 1 }) });
   assert.equal(r.status, 200); ref = r.body.reference;
   assert.equal(TX[ref].amount, 150000); assert.deepEqual(TX[ref].channels, ['bank_transfer']);
   assert.equal(TX[ref].callback_url, `${ORIGIN}/?ref=${ref}`);
@@ -99,6 +101,32 @@ test('failed payments are marked failed', async () => {
   TX[r.body.reference].status = 'failed';
   assert.equal((await call('/api/verify?ref=' + r.body.reference)).body.status, 'failed');
 });
+test('extra amounts are added to the price', async () => {
+  const r = await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'x@y.co', name: 'Shy One', note: 'secret', extra: 500, onWall: false }) });
+  assert.equal(TX[r.body.reference].amount, 200000);
+  TX[r.body.reference].status = 'success';
+  assert.equal((await call('/api/verify?ref=' + r.body.reference)).body.status, 'paid');
+});
+test('Thank-yous wall shows only people who chose it, with no emails or amounts', async () => {
+  const w = await call('/api/thanks');
+  const names = w.body.people.map(p => p.name);
+  assert(names.includes('Tolu A.')); assert(!names.includes('Shy One'));
+  const tolu = w.body.people.find(p => p.name === 'Tolu A.');
+  assert.equal(tolu.message, 'For Tolu'); assert.equal(tolu.piece.name, 'Ewuro'); assert(tolu.piece.img);
+  const raw = JSON.stringify(w.body); assert(!raw.includes('@')); assert(!raw.includes('amount'));
+  assert(!names.includes(null), 'nameless donations stay off the wall');
+});
+test('admin can hide someone from the wall', async () => {
+  assert.equal((await call('/api/admin/orders?ref=' + ref, { method: 'PATCH', body: JSON.stringify({ onWall: false }) })).status, 401);
+  await call('/api/admin/orders?ref=' + ref, { method: 'PATCH', headers: A(), body: JSON.stringify({ onWall: false }) });
+  assert(!(await call('/api/thanks')).body.people.some(p => p.name === 'Tolu A.'));
+  await call('/api/admin/orders?ref=' + ref, { method: 'PATCH', headers: A(), body: JSON.stringify({ onWall: true }) });
+});
+test('admin cannot show someone who chose to stay private', async () => {
+  const o = DB.orders.find(o => o.buyer_name === 'Shy One');
+  assert.equal((await call('/api/admin/orders?ref=' + o.reference, { method: 'PATCH', headers: A(), body: JSON.stringify({ onWall: true }) })).status, 403);
+  assert(!(await call('/api/thanks')).body.people.some(p => p.name === 'Shy One'));
+});
 test('admin sets the goal', async () => {
   assert.equal((await call('/api/admin/settings', { method: 'PATCH', headers: A(), body: JSON.stringify({ goal: 5 }) })).status, 400);
   await call('/api/admin/settings', { method: 'PATCH', headers: A(), body: JSON.stringify({ goal: 650000 }) });
@@ -108,8 +136,8 @@ test('admin hides, edits and deletes a piece', async () => {
   await call('/api/admin/pieces?id=' + piece.id, { method: 'PATCH', headers: A(), body: JSON.stringify({ published: false, price: 2000, preview_path: 'hack' }) });
   assert.equal((await call('/api/site')).body.pieces.length, 0);
   const list = await call('/api/admin/pieces', { headers: A() });
-  assert.equal(list.body.pieces[0].price, 2000); assert.equal(list.body.pieces[0].preview_path, piece.preview_path); assert.equal(list.body.pieces[0].sold, 1);
-  assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'a@b.co' }) })).status, 404, 'hidden pieces cannot be bought');
+  assert.equal(list.body.pieces[0].price, 2000); assert.equal(list.body.pieces[0].preview_path, piece.preview_path); assert.equal(list.body.pieces[0].sold, 2);
+  assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'a@b.co', name: 'A' }) })).status, 404, 'hidden pieces cannot be bought');
   assert.equal((await call('/api/admin/pieces?id=' + piece.id, { method: 'DELETE', headers: A() })).status, 200);
   assert.equal(DB.pieces.length, 0); assert.equal(DB.orders.find(o => o.reference === ref).piece_name, 'Ewuro');
 });

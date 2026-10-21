@@ -101,6 +101,7 @@ main{padding:22px 0 60px}
 .o small{color:var(--mut);overflow-wrap:anywhere}
 .o .st{font-size:11px;letter-spacing:.14em;text-transform:uppercase;justify-self:end}
 .st.paid{color:var(--ok)}.st.pending{color:var(--warn)}.st.failed{color:var(--bad)}
+.o .wall{grid-column:1/-1;justify-self:start;margin-top:6px}
 .o .note{grid-column:1/-1;font-size:14px;background:var(--surf2);border-radius:10px;padding:6px 10px;margin-top:4px}
 .top5{list-style:none;margin:0;padding:0;counter-reset:t}
 .top5 li{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);counter-increment:t}
@@ -160,6 +161,7 @@ main{padding:22px 0 60px}
     </div>
     <form id="addForm" novalidate style="margin-top:16px">
      <div class="field"><label class="l" for="pName">Name</label><input class="inp" id="pName" maxlength="80" placeholder="e.g. Ewuro"></div>
+     <div class="field"><label class="l" for="pDesc">Description <span class="mut">(optional)</span></label><textarea class="inp" id="pDesc" maxlength="600" rows="3" placeholder="What it is, the story behind it, what you used…"></textarea></div>
      <div class="row">
       <div class="field"><label class="l" for="pCat">Section</label><select class="inp" id="pCat"><option value="arts">Arts</option><option value="illustrations">Illustrations</option><option value="stories">Stories</option><option value="photos">Photos</option></select></div>
       <div class="field"><label class="l" for="pTag">Filter tag</label><select class="inp" id="pTag"><option value="people">People</option><option value="things">Things</option><option value="anime">Anime</option><option value="random" selected>Random</option></select></div>
@@ -491,7 +493,15 @@ async function loadStats(){const s=await api('/admin/stats'),pct=s.goal?Math.min
  $('#top5').innerHTML=s.top.length?s.top.map(t=>'<li><span>'+esc(t.name)+'</span><b>'+t.sold+' sold</b></li>').join(''):'<li class="mut none">No sales yet</li>';
  $('#pendN').textContent=s.pending?s.pending+' waiting':'';
  const when=d=>new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
- $('#olist').innerHTML=s.recent.length?s.recent.map(o=>'<div class="o"><b>'+(o.type==='donation'?'Donation':esc(o.piece_name||'Piece'))+' · '+naira(o.amount)+'</b><span class="st '+o.status+'">'+o.status+'</span><small>'+esc(o.email)+'</small><small>'+when(o.paid_at||o.created_at)+'</small>'+(o.note?'<div class="note">'+esc(o.note)+'</div>':'')+'</div>').join(''):'<div class="empty">No orders yet. Share the site!</div>'}
+ const ol=$('#olist');if(!s.recent.length){ol.innerHTML='<div class="empty">No orders yet. Share the site!</div>';return}
+ ol.replaceChildren(...s.recent.map(o=>{const d=document.createElement('div');d.className='o';
+  d.innerHTML='<b>'+(o.type==='donation'?'Donation':esc(o.piece_name||'Piece'))+' · '+naira(o.amount)+(o.extra?' <span class="mut" style="font-weight:400">(incl. '+naira(o.extra)+' extra)</span>':'')+'</b><span class="st '+o.status+'">'+o.status+'</span>'
+   +'<small>'+(o.buyer_name?esc(o.buyer_name)+' · ':'')+esc(o.email)+'</small><small>'+when(o.paid_at||o.created_at)+'</small>'+(o.note?'<div class="note">'+esc(o.note)+'</div>':'');
+  if(o.status==='paid'&&o.buyer_name&&o.wall_ok===false){const s2=document.createElement('small');s2.className='wall';s2.textContent='Chose to stay private';d.append(s2)}
+  else if(o.status==='paid'&&o.buyer_name){const w=document.createElement('button');w.type='button';w.className='pill soft sm wall';
+   const lab=()=>{w.textContent=o.on_wall?'On the wall · Hide':'Hidden from wall · Show'};lab();
+   w.onclick=async()=>{w.disabled=true;try{const r=await api('/admin/orders?ref='+encodeURIComponent(o.reference),{method:'PATCH',body:JSON.stringify({onWall:!o.on_wall})});o.on_wall=r.on_wall;lab();toast(o.on_wall?'Showing on the Thank-yous wall':'Hidden from the Thank-yous wall')}catch(e){toast(e.message)}w.disabled=false};d.append(w)}
+  return d}))}
 $('#goalEdit').onclick=()=>{const f=$('#goalForm');f.hidden=!f.hidden;if(!f.hidden)$('#goalInp').focus()};
 $('#goalInp').oninput=e=>e.target.value=e.target.value.replace(/\D/g,'');
 $('#goalForm').onsubmit=async e=>{e.preventDefault();try{await api('/admin/settings',{method:'PATCH',body:JSON.stringify({goal:+$('#goalInp').value})});$('#goalForm').hidden=true;toast('Goal saved');loadStats()}catch(err){toast(err.message)}};
@@ -514,10 +524,10 @@ function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.leng
   return d}))}
 async function patch(p,body,msg){try{const r=await api('/admin/pieces?id='+p.id,{method:'PATCH',body:JSON.stringify(body)});Object.assign(p,r.piece);renderPieces();toast(msg||'Saved');loadStats()}catch(e){toast(e.message)}}
 function editForm(card,p){if(card.querySelector('form'))return card.querySelector('form').remove();const f=document.createElement('form');
- f.innerHTML='<div class="field"><label class="l">Name</label><input class="inp" name="name" maxlength="80"></div><div class="row"><div class="field"><label class="l">Section</label><select class="inp" name="cat">'+Object.entries(CATN).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></div><div class="field"><label class="l">Filter tag</label><select class="inp" name="tag"><option>people</option><option>things</option><option>anime</option><option>random</option></select></div></div><div class="row"><div class="field"><label class="l">Price in naira</label><input class="inp" name="price" inputmode="numeric"></div><div class="field"><label class="l">Kind</label><select class="inp" name="kind"><option value="drawing">Drawing (line art)</option><option value="photo">Photo or colour</option></select></div></div><div style="display:flex;gap:8px"><button class="pill sm" type="submit">Save</button><button class="pill soft sm" type="button" data-x>Cancel</button></div>';
- for(const k of ['name','cat','tag','price','kind'])f.elements[k].value=p[k];
+ f.innerHTML='<div class="field"><label class="l">Name</label><input class="inp" name="name" maxlength="80"></div><div class="field"><label class="l">Description</label><textarea class="inp" name="description" maxlength="600" rows="3"></textarea></div><div class="row"><div class="field"><label class="l">Section</label><select class="inp" name="cat">'+Object.entries(CATN).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></div><div class="field"><label class="l">Filter tag</label><select class="inp" name="tag"><option>people</option><option>things</option><option>anime</option><option>random</option></select></div></div><div class="row"><div class="field"><label class="l">Price in naira</label><input class="inp" name="price" inputmode="numeric"></div><div class="field"><label class="l">Kind</label><select class="inp" name="kind"><option value="drawing">Drawing (line art)</option><option value="photo">Photo or colour</option></select></div></div><div style="display:flex;gap:8px"><button class="pill sm" type="submit">Save</button><button class="pill soft sm" type="button" data-x>Cancel</button></div>';
+ for(const k of ['name','description','cat','tag','price','kind'])f.elements[k].value=p[k]??'';
  f.querySelector('[data-x]').onclick=()=>f.remove();
- f.onsubmit=e=>{e.preventDefault();patch(p,{name:f.elements.name.value,cat:f.elements.cat.value,tag:f.elements.tag.value,price:+f.elements.price.value.replace(/\D/g,''),kind:f.elements.kind.value})};
+ f.onsubmit=e=>{e.preventDefault();patch(p,{name:f.elements.name.value,description:f.elements.description.value,cat:f.elements.cat.value,tag:f.elements.tag.value,price:+f.elements.price.value.replace(/\D/g,''),kind:f.elements.kind.value})};
  card.append(f);f.elements.name.focus()}
 
 /* add a piece: clean it with the Sketch Studio engine, then upload a small public preview and the full private original */
@@ -558,10 +568,10 @@ $('#addForm').onsubmit=async e=>{e.preventDefault();if($('#addBtn').disabled)ret
   const up=await api('/admin/upload-url',{method:'POST',body:JSON.stringify({ext:extOf(original),previewExt:extOf(preview)})});
   btn.textContent='Uploading…';await Promise.all([putFile(up.preview.url,preview),putFile(up.original.url,original)]);
   btn.textContent='Saving…';
-  const r=await api('/admin/pieces',{method:'POST',body:JSON.stringify({name,cat:$('#pCat').value,tag:$('#pTag').value,kind,price,published:$('#pLive').checked,preview_path:up.preview.path,original_path:up.original.path})});
+  const r=await api('/admin/pieces',{method:'POST',body:JSON.stringify({name,description:$('#pDesc').value.trim(),cat:$('#pCat').value,tag:$('#pTag').value,kind,price,published:$('#pLive').checked,preview_path:up.preview.path,original_path:up.original.path})});
   toast(name+(r.piece.published?' is live':' is saved (delisted)'));resetAdd();loadPieces();loadStats()}
  catch(x){err.textContent=x.message}finally{btn.textContent='Upload piece';syncAdd()}};
-function resetAdd(){U.file=null;U.out=null;$('#file').value='';const d=$('#drop');d.classList.remove('has');d.querySelectorAll('canvas,.again').forEach(n=>n.remove());$('#dropTxt').hidden=false;$('#tools').hidden=true;$('#pName').value='';syncAdd()}
+function resetAdd(){U.file=null;U.out=null;$('#file').value='';const d=$('#drop');d.classList.remove('has');d.querySelectorAll('canvas,.again').forEach(n=>n.remove());$('#dropTxt').hidden=false;$('#tools').hidden=true;$('#pName').value='';$('#pDesc').value='';syncAdd()}
 
 async function loadAll(){try{await Promise.all([loadStats(),loadPieces()])}catch(e){toast(e.message)}}
 $('#refresh').onclick=()=>loadAll().then(()=>toast('Up to date'));

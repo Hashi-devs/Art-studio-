@@ -173,7 +173,7 @@ section{padding:56px 0}
 .mlist span{color:var(--faint);cursor:not-allowed}
 .mlist svg{width:.42em;height:.42em}
 .ov.show .mlist a,.ov.show .mlist span{opacity:1;transform:none}
-.mlist li:nth-child(2) *{transition-delay:.05s}.mlist li:nth-child(3) *{transition-delay:.1s}.mlist li:nth-child(4) *{transition-delay:.15s}.mlist li:nth-child(5) *{transition-delay:.2s}
+.mlist li:nth-child(2) *{transition-delay:.05s}.mlist li:nth-child(3) *{transition-delay:.1s}.mlist li:nth-child(4) *{transition-delay:.15s}.mlist li:nth-child(5) *{transition-delay:.2s}.mlist li:nth-child(6) *{transition-delay:.25s}
 .sheet{position:absolute;left:0;right:0;bottom:0;max-height:92svh;overflow:auto;background:var(--surf);border-radius:28px 28px 0 0;box-shadow:0 -10px 40px -10px rgba(0,0,0,.35);transform:translateY(100%);transition:transform .45s cubic-bezier(.2,.8,.2,1);padding:10px 20px calc(24px + env(safe-area-inset-bottom,0px))}
 .ov.show .sheet{transform:none}
 .sheet::before{content:"";display:block;width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 6px}
@@ -218,6 +218,30 @@ textarea.inp{min-height:110px;resize:vertical}
 .bg{flex:none;border:1px solid transparent;background:var(--surf2);border-radius:14px;padding:6px 12px 6px 6px;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--ink);font-size:14px}
 .bg i{width:30px;height:30px;border-radius:9px;background:center/cover}
 .bg[aria-pressed=true]{background:transparent;border:1px dashed var(--faint)}
+.dimg{border-radius:20px;overflow:hidden;background:#fff;border:1px solid var(--line);display:grid;place-items:center;max-height:46vh}
+.dimg.d{background:#f1f0ec}.dimg img{max-width:100%;max-height:46vh;object-fit:contain}.dimg.d img{padding:16px}
+.dname{font-size:30px;line-height:1.1;margin:16px 0 2px}
+.dmeta{margin:0;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
+.ddesc{margin:12px 0 0;color:var(--ink);white-space:pre-line}
+.drow{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0 0;margin-top:16px;border-top:1px solid var(--line)}
+.drow b{font-weight:600;font-variant-numeric:tabular-nums;font-size:18px}.drow.tot b{font-size:22px}
+.amts.x4{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.amts.x4 .amt{font-size:15px;padding:12px 4px}
+.wallq{display:flex;gap:12px;align-items:flex-start;cursor:pointer;line-height:1.35;background:var(--surf2);border-radius:14px;padding:12px 14px}
+.wallq input{width:20px;height:20px;flex:none;margin:1px 0 0;accent-color:var(--ink)}.wallq small{display:block;color:var(--mut);font-size:13px}
+.ov.page{overflow-y:auto;overscroll-behavior:contain;background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none}
+.pwrap{max-width:880px;margin:0 auto;padding:0 20px 90px;min-height:100%}
+.pwrap .bar2{height:64px;display:flex;align-items:center;position:sticky;top:0}
+.thead{text-align:center;margin:8px 0 34px}.thead h2{font-size:clamp(44px,10vw,72px);line-height:1}.thead p{color:var(--mut);margin:12px auto 0;max-width:40ch}
+.names{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:4px 0;text-align:center}
+.nm{border:0;background:none;padding:2px 10px;color:var(--ink);cursor:pointer;font-family:"IM Fell English",Georgia,serif;font-size:clamp(26px,6.4vw,44px);line-height:1.2;transition:opacity .2s,transform .25s cubic-bezier(.3,1.6,.5,1)}
+.nm:nth-child(3n+2){font-style:italic}.nm:nth-child(4n+3){color:var(--mut)}
+.nm:active{transform:scale(.95)}
+@media(hover:hover){.names:hover .nm{opacity:.45}.names .nm:hover{opacity:1}}
+.names .empty{width:100%}
+.wmeta{margin:-2px 0 16px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
+.wmsg{margin:0;font-family:"IM Fell English",Georgia,serif;font-size:22px;line-height:1.4;padding:6px 0 6px 16px;border-left:2px solid var(--faint);white-space:pre-line}
+.wmsg.none{font-family:inherit;font-size:15px;color:var(--mut)}
+.wallLink{margin-top:16px}
 .rdyNote{color:var(--mut);font-size:14px;margin:10px 2px 0}
 .done{text-align:center;padding:20px 0 4px}
 .badge{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--ok) 18%,transparent);box-shadow:0 0 0 10px color-mix(in srgb,var(--ok) 9%,transparent);animation:pop2 .5s cubic-bezier(.3,1.6,.5,1)}
@@ -318,6 +342,7 @@ textarea.inp{min-height:110px;resize:vertical}
   <li><a href="#gallery">Gallery</a></li>
   <li><a href="#progress">Progress</a></li>
   <li><a href="#donate" id="donateLink">Donate</a></li>
+  <li><a href="#thanks" id="thanksLink">Thank-yous</a></li>
   <li><span aria-disabled="true">Credits <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="sr">(coming soon)</span></span></li>
  </ul>
 </div></div>
@@ -332,7 +357,12 @@ textarea.inp{min-height:110px;resize:vertical}
  <p style="margin:0;color:var(--mut)">No art needed. Any amount moves me closer to the laptop.</p>
  <div class="amts" id="amts"></div>
  <div class="q" style="margin:12px 0 0"><label class="sr" for="custom">Other amount</label><input class="inp" id="custom" inputmode="numeric" placeholder="Other amount, in naira"></div>
- <div class="q" id="donEmailQ" style="margin:12px 0 0" hidden><label class="sr" for="donEmail">Your email</label><input class="inp" id="donEmail" type="email" autocomplete="email" placeholder="Your email, for the receipt"><p class="err" id="donErr" role="alert"></p></div>
+ <div id="donEmailQ" hidden>
+  <div class="q" style="margin:12px 0 0"><label class="sr" for="donName">Your name</label><input class="inp" id="donName" autocomplete="name" maxlength="60" placeholder="Your name (optional)"></div>
+  <div class="q" style="margin:10px 0 0"><label class="sr" for="donEmail">Your email</label><input class="inp" id="donEmail" type="email" autocomplete="email" placeholder="Your email, for the receipt"></div>
+  <div class="q" style="margin:10px 0 0"><label class="sr" for="donMsg">Message</label><textarea class="inp" id="donMsg" maxlength="600" placeholder="A message (optional)"></textarea></div>
+  <label class="wallq"><input type="checkbox" id="donWall" checked><span>Show my name and message on the Thank-yous wall<small>Only if you add a name. Your email is never shown.</small></span></label>
+  <p class="err" id="donErr" role="alert"></p></div>
  <p class="notice" id="donNote">Demo mode: payments aren't connected here.</p>
  <button class="pill full" id="donateGo" type="button" disabled>Donate</button>
 </div></div>
@@ -340,9 +370,22 @@ textarea.inp{min-height:110px;resize:vertical}
 <div class="ov" id="co" role="dialog" aria-modal="true" aria-labelledby="coT"><div class="sheet">
  <div class="shtop"><h2 id="coT">Make it yours</h2><button class="ibtn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
  <div class="item" id="coItem"><div class="thumb" id="coThumb"><img id="coImg" alt=""></div><div><h3 id="coName"></h3><small id="coCat"></small></div><b id="coPrice"></b></div>
- <form id="p1" novalidate>
-  <div class="q"><label for="email">Your email</label><span class="sub">Where your receipt and file go.</span><input class="inp" id="email" type="email" autocomplete="email" placeholder="you@example.com"><p class="err" id="emailErr" role="alert"></p></div>
-  <div class="q"><label for="desc">Anything to add? (optional)</label><span class="sub">A name, a date, a short dedication.</span><textarea class="inp" id="desc" placeholder="A little note, just for them…"></textarea></div>
+ <div id="p0" hidden>
+  <div class="dimg" id="dBox"><img id="dImg" alt=""></div>
+  <h3 class="dname" id="dName"></h3>
+  <p class="dmeta" id="dMeta"></p>
+  <p class="ddesc" id="dDesc" hidden></p>
+  <div class="drow"><span>Price</span><b id="dPrice"></b></div>
+  <div class="q" style="margin:18px 0 0"><span class="lbl">Add something extra?</span><span class="sub">Optional. It all goes into the laptop fund.</span>
+   <div class="amts x4" id="xtras"></div>
+   <label class="sr" for="xCustom">Other extra amount</label><input class="inp" id="xCustom" inputmode="numeric" placeholder="Or type your own amount" style="margin-top:10px"></div>
+  <div class="drow tot"><span>Total</span><b id="dTotal"></b></div>
+ </div>
+ <form id="p1" novalidate hidden>
+  <div class="q"><label for="bName">Your name</label><span class="sub">How you’d like to be thanked.</span><input class="inp" id="bName" autocomplete="name" maxlength="60" placeholder="Your name"><p class="err" id="nameErr" role="alert"></p></div>
+  <div class="q"><label for="email">Your email</label><span class="sub">Where your receipt goes. Never shown to anyone.</span><input class="inp" id="email" type="email" autocomplete="email" placeholder="you@example.com"><p class="err" id="emailErr" role="alert"></p></div>
+  <div class="q"><label for="desc">What would you like to add? (optional)</label><span class="sub">A message, a dedication, or what this piece means to you.</span><textarea class="inp" id="desc" maxlength="600" placeholder="Write anything…"></textarea></div>
+  <label class="wallq"><input type="checkbox" id="onWall" checked><span>Show my name and message on the Thank-yous wall<small>Untick to stay private. Your email is never shown.</small></span></label>
  </form>
  <div id="p2" hidden>
   <div class="q"><span class="lbl">How would you like to pay?</span><span class="sub" id="payLine"></span>
@@ -358,8 +401,21 @@ textarea.inp{min-height:110px;resize:vertical}
   <div class="bgs" id="bgs" role="group" aria-label="Pick a background" hidden></div>
   <p class="rdyNote" id="readyNote">Full quality, exactly as I made it.</p>
  </div>
- <div id="p4" hidden><div class="done"><div class="badge" id="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2 id="doneH">It's yours</h2><p id="doneTxt">Thank you for getting me a little closer.</p></div></div>
- <div class="cfoot" id="cfoot"><div class="stepn"><span id="stepTxt">Step 1/3</span><button class="tlink" type="button" id="backBtn" hidden>Back</button></div><button class="pill" type="button" id="nextBtn">Next</button></div>
+ <div id="p4" hidden><div class="done"><div class="badge" id="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2 id="doneH">It's yours</h2><p id="doneTxt">Thank you for getting me a little closer.</p><button class="pill glass wallLink" type="button" id="seeWall">See the Thank-yous</button></div></div>
+ <div class="cfoot" id="cfoot"><div class="stepn"><span id="stepTxt">Step 1/4</span><button class="tlink" type="button" id="backBtn" hidden>Back</button></div><button class="pill" type="button" id="nextBtn">Next</button></div>
+</div></div>
+
+<div class="ov page" id="thanks" role="dialog" aria-modal="true" aria-labelledby="thT"><div class="pwrap">
+ <div class="bar2"><button class="ibtn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="thead"><p class="eyebrow">With gratitude</p><h2 id="thT">Thank-yous</h2><p>Everyone who’s helped me get closer to the laptop. Tap a name.</p></div>
+ <div class="names" id="names"></div>
+</div></div>
+
+<div class="ov" id="who" role="dialog" aria-modal="true" aria-labelledby="wName"><div class="sheet">
+ <div class="shtop"><h2 id="wName"></h2><button class="ibtn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <p class="wmeta" id="wMeta"></p>
+ <div class="item" id="wItem"><div class="thumb" id="wThumb"><img id="wImg" alt=""></div><div><h3 id="wPiece"></h3><small>The piece they took home</small></div></div>
+ <blockquote class="wmsg" id="wMsg"></blockquote>
 </div></div>
 
 <script>
@@ -685,7 +741,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){const o=$$('.ov.sho
 $('#menuBtn').onclick=()=>{$('#menuBtn').setAttribute('aria-expanded','true');openOv('menu')};
 $('#menuClose').onclick=()=>{$('#menuBtn').setAttribute('aria-expanded','false');closeOv($('#menu'))};
 $$('#menu a').forEach(a=>a.addEventListener('click',e=>{closeOv($('#menu'));$('#menuBtn').setAttribute('aria-expanded','false');
- if(a.id==='donateLink'){e.preventDefault();setTimeout(()=>openOv('donate'),200)}}));
+ if(a.id==='donateLink'){e.preventDefault();setTimeout(()=>openOv('donate'),200)}
+ if(a.id==='thanksLink'){e.preventDefault();setTimeout(openThanks,200)}}));
 
 /* progress */
 function initProgress(){const pct=Math.max(0,Math.min(100,RAISED/GOAL*100)),show=Math.max(pct,2);
@@ -759,24 +816,38 @@ $('#heart').onclick=e=>{const h=e.currentTarget,on=h.classList.toggle('on');h.se
   if(!LIVE){go.textContent='Payments aren’t connected here';go.disabled=true;setTimeout(upd,1800);return}
   const em=$('#donEmail').value.trim();if(!isEmail(em)){$('#donErr').textContent='Enter an email like name@example.com.';$('#donEmail').focus();return}
   $('#donErr').textContent='';go.disabled=true;go.textContent='Opening Paystack…';
-  try{const d=await api('/donate',{method:'POST',body:JSON.stringify({amount:amt,email:em})});location.href=d.url}
+  try{const d=await api('/donate',{method:'POST',body:JSON.stringify({amount:amt,email:em,name:$('#donName').value.trim(),note:$('#donMsg').value.trim(),onWall:$('#donWall').checked})});location.href=d.url}
   catch(e){$('#donErr').textContent=e.message;upd()}};upd()}
 
 /* checkout */
-let cur=null,step=1,dl=null;
+let cur=null,step=0,dl=null,EXTRA=0;
+const XTRAS=[0,500,1000,2000];
+const total=()=>priceOf(cur)+EXTRA;
+const fmtDate=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+function setExtra(v,fromInput){EXTRA=Math.max(0,Math.min(1000000,Math.round(v)||0));if(!fromInput)$('#xCustom').value='';
+ $$('#xtras .amt').forEach(b=>b.setAttribute('aria-pressed',!fromInput&&+b.dataset.v===EXTRA));
+ $('#dTotal').textContent=naira(total(),0);$('#coPrice').textContent=naira(total(),0);$('#payLine').textContent='You’re paying '+naira(total(),0)+'.'}
+$('#xtras').replaceChildren(...XTRAS.map(v=>{const b=document.createElement('button');b.type='button';b.className='amt';b.dataset.v=v;b.textContent=v?'+'+naira(v,0):'No extra';b.onclick=()=>setExtra(v);return b}));
+$('#xCustom').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'');setExtra(+e.target.value,true)});
 function openCo(it){cur=it;$('#coImg').src=it.img;$('#coThumb').className='thumb'+(it.kind==='drawing'?' d':'');$('#coName').textContent=it.name;
- $('#coCat').textContent=CATS.find(c=>c.k===it.cat).n;$('#coPrice').textContent=naira(priceOf(cur));$('#payLine').textContent='You’re paying '+naira(priceOf(cur))+'.';
- $('#emailErr').textContent='';setStep(1);openOv('co')}
-const TITLES=['Make it yours','Pay for your piece','Your piece is ready','Thank you'];
+ $('#coCat').textContent=CATS.find(c=>c.k===it.cat).n;
+ $('#dBox').className='dimg'+(it.kind==='drawing'?' d':'');$('#dImg').src=it.img;$('#dImg').alt=it.name;$('#dName').textContent=it.name;
+ $('#dMeta').textContent=[CATS.find(c=>c.k===it.cat).n,it.date?'Uploaded '+fmtDate(it.date):''].filter(Boolean).join(' · ');
+ $('#dDesc').textContent=it.description||'';$('#dDesc').hidden=!it.description;$('#dPrice').textContent=naira(priceOf(it),0);
+ $('#emailErr').textContent='';$('#nameErr').textContent='';setExtra(0);setStep(0);openOv('co')}
+const TITLES=['About this piece','Your details','Pay for your piece','Your piece is ready','Thank you'];
 const arrow=' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-function setStep(n){step=n;['p1','p2','p3','p4'].forEach((p,i)=>$('#'+p).hidden=i!==n-1);$('#coItem').hidden=n===4;
- $('#coT').textContent=TITLES[n-1];$('#stepTxt').textContent=n<4?'Step '+n+'/3':'';$('#backBtn').hidden=n===1||n===4||!!(cur&&cur.paid);$('#nextBtn').disabled=false;
- $('#nextBtn').innerHTML=n===1?'Next'+arrow:n===2?'Pay '+naira(priceOf(cur),0)+arrow:n===3?'Download':'Done';
+function setStep(n){step=n;['p0','p1','p2','p3','p4'].forEach((p,i)=>$('#'+p).hidden=i!==n);$('#coItem').hidden=n===0||n===4;
+ $('#coT').textContent=TITLES[n];$('#stepTxt').textContent=n<4?'Step '+(n+1)+'/4':'';$('#backBtn').hidden=n===0||n===4||!!(cur&&cur.paid);$('#nextBtn').disabled=false;
+ $('#nextBtn').innerHTML=n===0?'Continue'+arrow:n===1?'Next'+arrow:n===2?'Pay '+naira(total(),0)+arrow:n===3?'Download':'Done';
  $('#co .sheet').scrollTop=0;if(n===3)showReady()}
+$('#bName').addEventListener('input',()=>$('#nameErr').textContent='');$('#email').addEventListener('input',()=>$('#emailErr').textContent='');
 $('#p1').addEventListener('submit',e=>{e.preventDefault();$('#nextBtn').click()});
 $('#backBtn').onclick=()=>setStep(step-1);
 $('#nextBtn').onclick=()=>{
- if(step===1){const v=$('#email').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){$('#emailErr').textContent='Enter an email like name@example.com.';$('#email').focus();return}$('#emailErr').textContent='';setStep(2)}
+ if(step===0)setStep(1);
+ else if(step===1){const nm=$('#bName').value.trim(),v=$('#email').value.trim();$('#nameErr').textContent=nm?'':'Enter your name.';
+  $('#emailErr').textContent=isEmail(v)?'':'Enter an email like name@example.com.';if(!nm){$('#bName').focus();return}if(!isEmail(v)){$('#email').focus();return}setStep(2)}
  else if(step===2){if(LIVE)payPiece();else setStep(3)}else if(step===3)download();else closeOv($('#co'))};
 let fileBlob=null,ART=null,bgPick='white';
 const IMG={};for(const k of ['white','grey','brown','binder']){const im=new Image();im.src=A['t_'+k];IMG[k]=im}
@@ -821,7 +892,7 @@ async function api(path,opts={},ms=8000){const c=new AbortController(),t=setTime
  catch(e){throw e.name==='AbortError'?new Error('That took too long. Check your connection and try again.'):e}finally{clearTimeout(t)}}
 async function payPiece(){const b=$('#nextBtn');b.disabled=true;b.textContent='Opening Paystack…';
  try{const pm=document.querySelector('input[name=pm]:checked');
-  const d=await api('/checkout',{method:'POST',body:JSON.stringify({pieceId:cur.id,email:$('#email').value.trim(),note:$('#desc').value.trim(),method:pm&&pm.value})});location.href=d.url}
+  const d=await api('/checkout',{method:'POST',body:JSON.stringify({pieceId:cur.id,name:$('#bName').value.trim(),email:$('#email').value.trim(),note:$('#desc').value.trim(),extra:EXTRA,onWall:$('#onWall').checked,method:pm&&pm.value})});location.href=d.url}
  catch(e){setStep(2);$('#stepTxt').textContent=e.message}}
 const clearRef=()=>{try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}};
 function showDone(h,txt,ok){cur=cur||{paid:true};if(!$('#co').classList.contains('show'))openOv('co');setStep(4);$('#doneH').textContent=h;$('#doneTxt').textContent=txt;$('#badge').hidden=!ok}
@@ -837,7 +908,21 @@ async function returning(){const q=new URLSearchParams(location.search),ref=q.ge
  try{const d=await api('/site',{},6000);if(!Array.isArray(d.pieces))throw 0;LIVE=true;ITEMS=d.pieces;GOAL=d.goal||GOAL;RAISED=d.raised||0}catch(e){LIVE=false}
  if(LIVE){$('#payNote').textContent='You’ll pay on Paystack’s secure page, then come straight back here to style and download your piece.';
   $('#donNote').textContent='You’ll pay on Paystack’s secure page, then come straight back here.';$('#donEmailQ').hidden=false}
- buildTags();markTags();render();initProgress();if(LIVE)returning()})();
+ buildTags();markTags();render();initProgress();if(LIVE)returning();if(location.hash==='#thanks')openThanks()})();
+
+/* Thank-yous wall */
+const DEMO_THANKS=[{name:'Preview name',message:'Messages people leave show up here.',type:'piece',piece:{name:'Ewuro',kind:'drawing',img:A.ewuro},date:new Date().toISOString()},
+ {name:'Another kind helper',message:'',type:'donation',piece:null,date:new Date().toISOString()},{name:'A third name',message:'Names stack like this, newest first.',type:'piece',piece:{name:'Amuro, in pen',kind:'drawing',img:A.pen},date:new Date().toISOString()}];
+let PEOPLE=null;
+async function openThanks(){openOv('thanks');const box=$('#names');
+ if(!PEOPLE){box.innerHTML='<div class="empty"><span>Loading…</span></div>';
+  if(LIVE){try{PEOPLE=(await api('/thanks')).people}catch(e){box.innerHTML='<div class="empty"><span></span></div>';box.querySelector('span').textContent=e.message;return}}else PEOPLE=DEMO_THANKS}
+ if(!PEOPLE.length){box.innerHTML='<div class="empty"><h3>Your name could be first</h3><span>Pick a piece or donate, and you’ll show up here.</span></div>';return}
+ box.replaceChildren(...PEOPLE.map(p=>{const b=document.createElement('button');b.type='button';b.className='nm';b.textContent=p.name;b.onclick=()=>openWho(p);return b}))}
+function openWho(p){$('#wName').textContent=p.name;$('#wMeta').textContent=(p.type==='donation'?'Donated':'Bought a piece')+' · '+fmtDate(p.date);
+ $('#wItem').hidden=!p.piece;if(p.piece){$('#wImg').src=p.piece.img||'';$('#wThumb').className='thumb'+(p.piece.kind==='drawing'?' d':'');$('#wPiece').textContent=p.piece.name}
+ const m=$('#wMsg');m.textContent=p.message||'No message, just kindness.';m.classList.toggle('none',!p.message);openOv('who')}
+$('#seeWall').onclick=()=>{closeOv($('#co'));PEOPLE=null;setTimeout(openThanks,250)};
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body></html>

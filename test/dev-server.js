@@ -21,8 +21,8 @@ const USERS = { 'admin@test.dev': 'testpass', 'other@test.dev': 'otherpass' };
 const TOKENS = {};
 const TX = {}; // paystack transactions by reference
 const DEFAULTS = {
-  pieces: () => ({ id: crypto.randomUUID(), cat: 'arts', tag: 'random', kind: 'drawing', price: 1000, published: true, created_at: new Date().toISOString() }),
-  orders: () => ({ id: crypto.randomUUID(), status: 'pending', downloads: 0, note: null, piece_id: null, piece_name: null, created_at: new Date().toISOString(), paid_at: null }),
+  pieces: () => ({ id: crypto.randomUUID(), description: null, cat: 'arts', tag: 'random', kind: 'drawing', price: 1000, published: true, created_at: new Date().toISOString() }),
+  orders: () => ({ id: crypto.randomUUID(), status: 'pending', downloads: 0, note: null, buyer_name: null, extra: 0, on_wall: true, wall_ok: true, piece_id: null, piece_name: null, created_at: new Date().toISOString(), paid_at: null }),
 };
 
 function parseQuery(qs) {
@@ -37,7 +37,15 @@ function parseQuery(qs) {
   return { select, order, limit, filters };
 }
 const str = v => (v === null || v === undefined ? 'null' : String(v));
-const match = (row, fs) => fs.every(f => f.op === 'eq' ? str(row[f.c]) === f.val : f.op === 'neq' ? str(row[f.c]) !== f.val : true);
+const match = (row, fs) => fs.every(f => {
+  const v = row[f.c];
+  if (f.op === 'eq') return str(v) === f.val;
+  if (f.op === 'neq') return str(v) !== f.val;
+  if (f.op === 'in') return f.val.replace(/^\(|\)$/g, '').split(',').includes(str(v));
+  if (f.op === 'is') return f.val === 'null' ? v == null : str(v) === f.val;
+  if (f.op === 'not') return f.val === 'is.null' ? v != null : true;
+  return true;
+});
 function rest(method, table, qs, body) {
   const rows = DB[table]; if (!rows) return [404, { message: 'no table' }];
   const q = parseQuery(qs);
