@@ -30,8 +30,9 @@ Prices always come from the database, so nobody can change what they pay from th
 3. Open **Authentication → Users → Add user → Create new user**. Use your email and a strong password,
    and tick **Auto confirm user**. This is your admin login.
 4. Open **Authentication → Sign In / Providers** and turn **off** "Allow new users to sign up".
-5. Open **Project Settings → API Keys → Legacy API keys**. You'll need the `anon` key and the `service_role` key.
-   Your Project URL is under **Project Settings → Data API** (looks like `https://abcd.supabase.co`).
+5. Open **Project Settings → API Keys**. You'll need the **publishable** key (`sb_publishable_…`) and a
+   **secret** key (`sb_secret_…`). Older projects can use the legacy `anon` and `service_role` keys instead.
+   Your Project URL looks like `https://abcd.supabase.co` (top of the project's home page, or **Project Settings → Data API**).
 
 ### 2. Paystack (payments)
 1. Sign up at [paystack.com](https://paystack.com). You start in **Test mode**, which uses fake money.
@@ -46,8 +47,8 @@ Prices always come from the database, so nobody can change what they pay from th
    | Name | Value |
    |---|---|
    | `SUPABASE_URL` | your Project URL |
-   | `SUPABASE_ANON_KEY` | the `anon` key |
-   | `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` key (secret) |
+   | `SUPABASE_ANON_KEY` | the publishable key (or legacy `anon`) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | the secret key (or legacy `service_role`) |
    | `PAYSTACK_SECRET_KEY` | `sk_test_…` (later `sk_live_…`) |
    | `ADMIN_EMAIL` | the email you used in Supabase step 3 |
    | `SITE_URL` | `https://YOUR-SITE.vercel.app` |
@@ -55,7 +56,7 @@ Prices always come from the database, so nobody can change what they pay from th
 2. Open **Deployments**, tap the ⋯ on the latest one and choose **Redeploy** so it picks up the settings.
 3. Optional: open the **Analytics** tab and tap **Enable** to see visitors.
 
-Never put the `service_role` or Paystack secret key in any page or share them. If one leaks, make a new one
+Never put the Supabase secret key or Paystack secret key in any page or share them. If one leaks, make a new one
 in Supabase or Paystack and update it in Vercel.
 
 ### 4. Try it

@@ -10,7 +10,7 @@ const PORT = +process.env.PORT || 3999;
 const ROOT = path.join(__dirname, '..');
 const ORIGIN = `http://localhost:${PORT}`;
 Object.assign(process.env, {
-  SUPABASE_URL: `${ORIGIN}/sb`, SUPABASE_SERVICE_ROLE_KEY: 'service-key', SUPABASE_ANON_KEY: 'anon-key',
+  SUPABASE_URL: `${ORIGIN}/sb`, SUPABASE_SERVICE_ROLE_KEY: process.env.TEST_KEY || 'service-key', SUPABASE_ANON_KEY: 'anon-key',
   PAYSTACK_SECRET_KEY: 'sk_test_fake', ADMIN_EMAIL: 'admin@test.dev', SITE_URL: ORIGIN,
 });
 
@@ -72,7 +72,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 async function supabase(req, res, url) {
   const p = url.pathname.slice(3), body = ['POST', 'PATCH', 'PUT'].includes(req.method) ? await readBody(req) : null;
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' }); return res.end(); }
-  const svc = req.headers.authorization === 'Bearer service-key';
+  const svc = req.headers.authorization === 'Bearer service-key' || req.headers.apikey === 'sb_secret_test';
   // auth
   if (p === '/auth/v1/token') {
     const b = JSON.parse(body || '{}'), g = url.searchParams.get('grant_type');
