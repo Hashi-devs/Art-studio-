@@ -126,7 +126,9 @@ globalThis.fetch = async (u, opts = {}) => {
   if (url.hostname !== 'api.paystack.co') return realFetch(u, opts);
   if (opts.headers.Authorization !== 'Bearer sk_test_fake') return new Response(JSON.stringify({ status: false, message: 'Invalid key' }), { status: 401 });
   if (url.pathname === '/transaction/initialize') {
-    const b = JSON.parse(opts.body); TX[b.reference] = { ...b, status: 'ongoing' };
+    const b = JSON.parse(opts.body);
+    if ((b.channels || []).includes('bank_transfer') && process.env.NO_TRANSFER) return new Response(JSON.stringify({ status: false, message: 'No active channel' }), { status: 400 });
+    TX[b.reference] = { ...b, status: 'ongoing' };
     return new Response(JSON.stringify({ status: true, data: { authorization_url: `${ORIGIN}/fake-paystack?ref=${b.reference}`, reference: b.reference } }));
   }
   const v = /^\/transaction\/verify\/(.+)$/.exec(url.pathname);

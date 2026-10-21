@@ -1,7 +1,7 @@
 // Paystack over its REST API. Amounts sent to Paystack are in kobo (naira × 100).
 import { need, err, hex, randomHex } from './http.js';
 
-const CHANNELS = { card: ['card'], transfer: ['bank_transfer'], ussd: ['ussd'] };
+const CHANNELS = { card: ['card'], bank: ['bank'], transfer: ['bank_transfer'], ussd: ['ussd'] };
 
 export function paystack(env) {
   const secret = () => need(env, 'PAYSTACK_SECRET_KEY');
@@ -16,8 +16,15 @@ export function paystack(env) {
   return {
     newReference: prefix => `${prefix}_${Date.now().toString(36)}_${randomHex(5)}`,
     // Starts a payment and returns the Paystack page the buyer should be sent to.
-    initialize: ({ email, naira, reference, callbackUrl, metadata, method }) =>
-      call('/transaction/initialize', { method: 'POST', body: JSON.stringify({ email, amount: Math.round(naira * 100), currency: 'NGN', reference, callback_url: callbackUrl, metadata, ...(CHANNELS[method] ? { channels: CHANNELS[method] } : {}) }) }),
+    // If the chosen method isn't switched on for your Paystack account yet, it opens Paystack with every method instead.
+    async initialize({ email, naira, reference, callbackUrl, metadata, method }) {
+      const base = { email, amount: Math.round(naira * 100), currency: 'NGN', reference, callback_url: callbackUrl, metadata };
+      if (CHANNELS[method]) {
+        try { return await call('/transaction/initialize', { method: 'POST', body: JSON.stringify({ ...base, channels: CHANNELS[method] }) }); }
+        catch (e) { console.warn('Paystack refused channel', method, e.message); }
+      }
+      return call('/transaction/initialize', { method: 'POST', body: JSON.stringify(base) });
+    },
     // Asks Paystack for the final state of a payment.
     verify: reference => call(`/transaction/verify/${encodeURIComponent(reference)}`),
     // Paystack signs every webhook with HMAC-SHA512 of the raw body, using your secret key.

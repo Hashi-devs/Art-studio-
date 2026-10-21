@@ -76,6 +76,14 @@ test('checkout uses the database price, not the browser', async () => {
   assert.equal(TX[ref].amount, 150000); assert.deepEqual(TX[ref].channels, ['bank_transfer']);
   assert.equal(TX[ref].callback_url, `${ORIGIN}/?ref=${ref}`);
 });
+test('a payment method that is not switched on falls back to all methods', async () => {
+  process.env.NO_TRANSFER = '1';
+  const r = await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'f@x.co', name: 'Fallback', method: 'transfer' }) });
+  delete process.env.NO_TRANSFER;
+  assert.equal(r.status, 200); assert.equal(TX[r.body.reference].channels, undefined);
+  const b = await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, email: 'f@x.co', name: 'Bank app', method: 'bank' }) });
+  assert.deepEqual(TX[b.body.reference].channels, ['bank']);
+});
 test('no download before payment', async () => {
   const r = await call('/api/verify?ref=' + ref); assert.equal(r.body.status, 'pending'); assert(!r.body.url);
 });
