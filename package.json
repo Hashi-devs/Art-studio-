@@ -1,7 +1,8 @@
 {
   "name": "ar-studio",
   "private": true,
-  "description": "AR Studio: sell art to fund a laptop. Static site + Vercel functions (Supabase + Paystack), no dependencies.",
+  "type": "module",
+  "description": "AR Studio: sell art to fund a laptop. Static pages + one Cloudflare Worker (Supabase + Paystack), no packages.",
   "engines": { "node": ">=18" },
-  "scripts": { "test": "node test/run.js" }
+  "scripts": { "test": "node test/run.js", "dev": "node test/dev-server.js" }
 }

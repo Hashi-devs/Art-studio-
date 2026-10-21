@@ -1,25 +1,29 @@
-// Local test server: serves the site, runs the /api functions, and fakes Supabase and
-// Paystack in memory so the full flow can be tried without any accounts.
-//   node test/dev-server.js   → http://localhost:3999  (admin login: admin@test.dev / testpass)
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+// Local test server: runs the real Cloudflare Worker (src/worker.js) with the pages in
+// /public, and fakes Supabase and Paystack in memory so everything can be tried without accounts.
+//   npm run dev   → http://localhost:3999  (admin login: admin@test.dev / testpass)
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import worker from '../src/worker.js';
 
-const PORT = +process.env.PORT || 3999;
-const ROOT = path.join(__dirname, '..');
-const ORIGIN = `http://localhost:${PORT}`;
-Object.assign(process.env, {
+export const PORT = +process.env.PORT || 3999;
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PUBLIC = path.join(ROOT, 'public');
+export const ORIGIN = `http://localhost:${PORT}`;
+// The same settings you add in Cloudflare → Variables and Secrets, with test values.
+const ENV = {
   SUPABASE_URL: `${ORIGIN}/sb`, SUPABASE_SERVICE_ROLE_KEY: process.env.TEST_KEY || 'service-key', SUPABASE_ANON_KEY: 'anon-key',
   PAYSTACK_SECRET_KEY: 'sk_test_fake', ADMIN_EMAIL: 'admin@test.dev', SITE_URL: ORIGIN,
-});
+};
 
 /* ---------- in-memory database ---------- */
-const DB = { pieces: [], orders: [], settings: [{ id: 1, goal: 500000, updated_at: new Date().toISOString() }] };
-const FILES = {}; // "bucket/path" -> {type, buf}
+export const DB = { pieces: [], orders: [], settings: [{ id: 1, goal: 500000, updated_at: new Date().toISOString() }] };
+export const FILES = {}; // "bucket/path" -> {type, buf}
 const USERS = { 'admin@test.dev': 'testpass', 'other@test.dev': 'otherpass' };
 const TOKENS = {};
-const TX = {}; // paystack transactions by reference
+export const TX = {}; // paystack transactions by reference
 const DEFAULTS = {
   pieces: () => ({ id: crypto.randomUUID(), description: null, cat: 'arts', tag: 'random', kind: 'drawing', price: 1000, published: true, created_at: new Date().toISOString() }),
   orders: () => ({ id: crypto.randomUUID(), status: 'pending', downloads: 0, note: null, buyer_name: null, extra: 0, on_wall: true, wall_ok: true, piece_id: null, piece_name: null, created_at: new Date().toISOString(), paid_at: null }),
@@ -137,27 +141,34 @@ function fakePaystack(req, res, url) {
   res.end(`<!doctype html><meta name=viewport content="width=device-width"><body style="font:18px system-ui;padding:30px"><h1>Fake Paystack</h1><p>${t.email} · ₦${t.amount / 100} · ${(t.channels || ['all']).join(',')}</p><a id=pay href="?ref=${t.reference}&ok=1">Pay</a> · <a id=fail href="?ref=${t.reference}&ok=0">Fail</a>`);
 }
 
-/* ---------- API router (same shape as Vercel's Node functions) ---------- */
-function apiHandler(p) { const f = path.join(ROOT, 'api', p + '.js'); return fs.existsSync(f) ? require(f) : null; }
-async function api(req, res, url) {
-  const h = apiHandler(url.pathname.slice(5)); if (!h) return json(res, 404, { ok: false, error: 'no route' });
-  req.query = Object.fromEntries(url.searchParams);
-  await h(req, res);
+/* ---------- static files, the way Cloudflare serves /public ---------- */
+function asset(url) {
+  let f = url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname);
+  if (!path.extname(f)) f += '.html';
+  const file = path.join(PUBLIC, path.normalize(f));
+  if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || path.basename(file).startsWith('_')) {
+    return new Response(fs.readFileSync(path.join(PUBLIC, '404.html')), { status: 404, headers: { 'Content-Type': MIME['.html'] } });
+  }
+  return new Response(fs.readFileSync(file), { headers: { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' } });
+}
+const ENV_WITH_ASSETS = { ...ENV, ASSETS: { fetch: req => asset(new URL(req.url)) } };
+
+/* ---------- hand requests to the Worker ---------- */
+async function toWorker(req, res, url) {
+  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await readBody(req);
+  const request = new Request(url, { method: req.method, headers: req.headers, body });
+  const r = await worker.fetch(request, ENV_WITH_ASSETS, { waitUntil() {} });
+  res.writeHead(r.status, Object.fromEntries(r.headers));
+  res.end(Buffer.from(await r.arrayBuffer()));
 }
 
-const server = http.createServer(async (req, res) => {
+export const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, ORIGIN);
   try {
     if (url.pathname.startsWith('/sb/')) return await supabase(req, res, url);
-    if (url.pathname.startsWith('/api/')) return await api(req, res, url);
     if (url.pathname === '/fake-paystack') return fakePaystack(req, res, url);
     if (url.pathname === '/__state') return json(res, 200, { DB, files: Object.keys(FILES).filter(k => !k.includes(':')), TX });
-    let f = url.pathname === '/' ? '/index.html' : url.pathname;
-    if (!path.extname(f)) f += '.html';
-    const file = path.join(ROOT, path.normalize(f));
-    if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); return res.end('not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' }); fs.createReadStream(file).pipe(res);
+    return await toWorker(req, res, url);
   } catch (e) { console.error(e); json(res, 500, { error: String(e) }); }
 });
-if (require.main === module) server.listen(PORT, () => console.log('AR Studio test server on ' + ORIGIN));
-module.exports = { server, DB, FILES, TX, PORT, ORIGIN };
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) server.listen(PORT, () => console.log('AR Studio test server on ' + ORIGIN));

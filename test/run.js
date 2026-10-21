@@ -1,7 +1,7 @@
 // API tests against the fake Supabase + Paystack in dev-server.js.   npm test
-const assert = require('assert');
-const crypto = require('crypto');
-const { server, DB, TX, ORIGIN, PORT } = require('./dev-server');
+import assert from 'node:assert';
+import crypto from 'node:crypto';
+import { server, DB, TX, ORIGIN, PORT } from './dev-server.js';
 
 const call = async (path, opts = {}) => {
   const r = await fetch(ORIGIN + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
@@ -14,6 +14,15 @@ const test = (name, fn) => tests.push([name, fn]);
 let admin, other, piece;
 const A = () => ({ Authorization: 'Bearer ' + admin });
 
+test('pages, 404s and private files are served correctly', async () => {
+  const get = async p => { const r = await fetch(ORIGIN + p); return { status: r.status, text: await r.text() }; };
+  assert((await get('/')).text.includes('Welcome kind helper'));
+  assert((await get('/admin')).text.includes('Your studio'));
+  assert.equal((await get('/nope')).status, 404);
+  for (const p of ['/src/worker.js', '/src/lib/supabase.js', '/wrangler.jsonc', '/test/run.js', '/_headers']) assert.equal((await get(p)).status, 404, p + ' must not be public');
+  assert.equal((await call('/api/nothing')).status, 404);
+  assert.equal((await call('/api/site', { method: 'POST' })).status, 405);
+});
 test('site works with an empty shop', async () => {
   const r = await call('/api/site');
   assert.equal(r.status, 200); assert.deepEqual(r.body.pieces, []); assert.equal(r.body.raised, 0); assert.equal(r.body.goal, 500000);

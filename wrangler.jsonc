@@ -1,0 +1,14 @@
+{
+  // Cloudflare Workers config. Cloudflare reads this when it builds the site from GitHub.
+  "name": "ar-studio",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-06-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": { "enabled": true }
+}

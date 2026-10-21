@@ -1,77 +1,79 @@
 # AR Studio
 
-Art shop and laptop fund site, deployed on Vercel from `main`. No build step and no npm packages.
+Art shop and laptop fund site, hosted on **Cloudflare Workers** (free plan, commercial use allowed),
+with **Supabase** for the database and image storage and **Paystack** for payments. No packages, no build step.
 
-- `index.html`: the public site. When the backend is set up, it shows real pieces, the real goal and
-  the real total, and takes payments through Paystack. Without the backend (or in a preview), it shows demo pieces.
-- `admin.html`: your private page at **/admin**. Log in to upload pieces, hide or edit them, set the goal
-  and see sales and donations.
-- `api/`: the server code (Vercel functions). `lib/` holds shared helpers.
-- `supabase/schema.sql`: the database. Paste it into Supabase once.
-- `test/`: a local copy of everything with pretend Supabase and Paystack (`npm test`, or `node test/dev-server.js`).
-- `sketch-studio-engine.js`: the Sketch Studio engine (drawing cleanup and mockups), for reuse.
+```
+public/              everything visitors download
+  index.html         the site (demo pieces if the server isn't set up)
+  admin.html         your private page at /admin
+  404.html, robots.txt, _headers, assets/, fonts/, sketch-studio-engine.js
+src/                 the server code (never public)
+  worker.js          sends /api/* to the handlers, everything else to /public
+  api.js             every /api route
+  lib/               Supabase, Paystack and order helpers
+supabase/            database setup and updates (paste into Supabase's SQL Editor)
+test/                a local copy of everything with pretend Supabase and Paystack
+wrangler.jsonc       Cloudflare's settings for this project
+```
 
 ## How it works
 
-1. You upload a piece at /admin. The page cleans it with Sketch Studio, then sends a small **preview**
-   (public, shown in the gallery) and the full **original** (private) to Supabase Storage.
-2. A buyer picks a piece, enters their email and goes to Paystack's secure page to pay.
-3. Paystack sends them back. The server checks the payment with Paystack, then gives them a
-   30-minute link to the original, which they style and download. A link works for up to 10 downloads.
+1. You upload a piece at **/admin**. Sketch Studio cleans it (and removes notebook lines), you tidy it with
+   the eraser, and it uploads a small **preview** (public, for the gallery) and the full **original** (private).
+2. A buyer opens a piece, sees its details, adds an optional extra, gives their name, email and a message,
+   and pays on Paystack's secure page.
+3. Paystack sends them back. The server checks the payment with Paystack, then gives them a 30-minute link
+   to the original. They pick a background and download it (up to 10 downloads).
 4. Paystack also tells the server directly (the webhook), so a payment still counts if the buyer closes the tab.
+5. Buyers who agreed appear on the **Thank-yous** wall with their message. Emails and amounts never show.
 
 Prices always come from the database, so nobody can change what they pay from their browser.
 
-## One-time setup (about 20 minutes, works from a phone)
+## Setting up Cloudflare (one time)
 
-### 1. Supabase (database, file storage, your login)
-1. Go to [supabase.com](https://supabase.com), sign up and create a **New project**. Save the database password somewhere safe.
-2. Open **SQL Editor → New query**, paste everything in `supabase/schema.sql` and tap **Run**.
-3. Open **Authentication → Users → Add user → Create new user**. Use your email and a strong password,
-   and tick **Auto confirm user**. This is your admin login.
-4. Open **Authentication → Sign In / Providers** and turn **off** "Allow new users to sign up".
-5. Open **Project Settings → API Keys**. You'll need the **publishable** key (`sb_publishable_…`) and a
-   **secret** key (`sb_secret_…`). Older projects can use the legacy `anon` and `service_role` keys instead.
-   Your Project URL looks like `https://abcd.supabase.co` (top of the project's home page, or **Project Settings → Data API**).
-
-### 2. Paystack (payments)
-1. Sign up at [paystack.com](https://paystack.com). You start in **Test mode**, which uses fake money.
-2. Open **Settings → API Keys & Webhooks**. Copy the **Test Secret Key** (`sk_test_…`).
-3. In the same page, set **Test Webhook URL** to `https://YOUR-SITE.vercel.app/api/paystack-webhook`.
-4. To take real money later, finish Paystack's business activation, then use the **Live** secret key
-   and set the **Live Webhook URL** the same way.
-
-### 3. Vercel (connect it all)
-1. Open your project → **Settings → Environment Variables** and add:
+1. Make a free account at **dash.cloudflare.com/sign-up** and verify your email. Skip adding a domain.
+2. Open **Compute (Workers)** (or **Workers & Pages**) → **Create** → **Import a repository**.
+3. Connect **GitHub**, allow access to **Art-studio-**, and pick it.
+4. Project name `ar-studio`. Leave the build command empty. Deploy command: `npx wrangler deploy`. Tap **Deploy**.
+5. When it finishes, open the project → **Settings** → **Variables and Secrets** and add these six
+   (choose **Secret** for the two keys):
 
    | Name | Value |
    |---|---|
-   | `SUPABASE_URL` | your Project URL |
-   | `SUPABASE_ANON_KEY` | the publishable key (or legacy `anon`) |
-   | `SUPABASE_SERVICE_ROLE_KEY` | the secret key (or legacy `service_role`) |
-   | `PAYSTACK_SECRET_KEY` | `sk_test_…` (later `sk_live_…`) |
-   | `ADMIN_EMAIL` | the email you used in Supabase step 3 |
-   | `SITE_URL` | `https://YOUR-SITE.vercel.app` |
+   | `SUPABASE_URL` | your Supabase Project URL |
+   | `SUPABASE_ANON_KEY` | the publishable key (`sb_publishable_…`, or legacy `anon`) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | the secret key (`sb_secret_…`, or legacy `service_role`) — **Secret** |
+   | `PAYSTACK_SECRET_KEY` | `sk_test_…` (later `sk_live_…`) — **Secret** |
+   | `ADMIN_EMAIL` | the email of your Supabase admin user |
+   | `SITE_URL` | your site address, e.g. `https://ar-studio.yourname.workers.dev` (no `/` at the end) |
 
-2. Open **Deployments**, tap the ⋯ on the latest one and choose **Redeploy** so it picks up the settings.
-3. Optional: open the **Analytics** tab and tap **Enable** to see visitors.
+6. In Paystack → **Settings → API Keys & Webhooks**, set the Webhook URL to `SITE_URL` + `/api/paystack-webhook`.
+7. Every push to `main` on GitHub now updates the site automatically.
 
 Never put the Supabase secret key or Paystack secret key in any page or share them. If one leaks, make a new one
-in Supabase or Paystack and update it in Vercel.
+in Supabase or Paystack and update it in Cloudflare.
 
-### 4. Try it
-1. Go to `https://YOUR-SITE.vercel.app/admin`, log in and upload a piece.
-2. Open the site, buy it, and on Paystack's test page pay with a
-   [Paystack test card](https://paystack.com/docs/payments/test-payments/).
-3. You should come back to the studio and be able to download it. The sale shows up in /admin.
+## Supabase (one time)
 
-## Updates to run in Supabase
-If your database was set up before an update, paste these files into **SQL Editor → New query → Run** (each is safe to run twice):
-- `supabase/002_thanks.sql`: piece descriptions, buyer names, extra amounts and the Thank-yous wall.
-- `supabase/003_tags.sql`: lets filter tags be anything you type.
+1. Create a project, then in **SQL Editor → New query** paste `supabase/schema.sql` and **Run**.
+2. **Authentication → Users → Add user**: your email + a strong password, **Auto confirm**.
+3. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up".
+4. Copy the Project URL and keys from **Project Settings → API Keys**.
+
+Updates for an older database (each is safe to run twice): `supabase/002_thanks.sql`, `supabase/003_tags.sql`.
+
+## Going live with real money
+
+1. In Paystack, **Activate business** (Starter Business: BVN, ID, a bank account for payouts).
+2. Clear your test orders once in Supabase's SQL Editor: `delete from public.orders;`
+3. In Cloudflare, change `PAYSTACK_SECRET_KEY` to the live key. In Paystack, set the **Live** webhook URL.
+
+## Trying it locally
+
+`npm test` runs the server tests. `npm run dev` starts the whole site at http://localhost:3999 with
+pretend Supabase and Paystack (admin login `admin@test.dev` / `testpass`).
 
 ## Changing things
-- **Goal**: tap **Edit** on the Goal tile in /admin.
-- **Pieces**: add, delist, edit or delete them in /admin. Each piece can have a description.
-- **Thank-yous wall**: in /admin → Recent orders, hide anyone's name from the wall. People who chose to stay private can't be shown.
-- **Text, plans, slideshow, social links**: in `index.html`, the block marked `Edit these` near the top of the script.
+- **Goal, pieces, tags, descriptions, the Thank-yous wall**: all in /admin.
+- **Text, plans, slideshow, social links**: `public/index.html`, the block marked `Edit these` near the top of the script.
