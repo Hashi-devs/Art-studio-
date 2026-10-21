@@ -1,7 +1,7 @@
 // API tests against the fake Supabase + Paystack in dev-server.js.   npm test
 import assert from 'node:assert';
 import crypto from 'node:crypto';
-import { server, DB, TX, ORIGIN, PORT } from './dev-server.js';
+import { server, DB, TX, EMAILS, ORIGIN, PORT } from './dev-server.js';
 
 const call = async (path, opts = {}) => {
   const r = await fetch(ORIGIN + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
@@ -159,6 +159,28 @@ test('filter tags can be anything the admin types', async () => {
   assert.equal((await call('/api/site')).body.pieces[0].tag, 'lagos nights');
   await call('/api/admin/pieces?id=' + piece.id, { method: 'PATCH', headers: A(), body: JSON.stringify({ tag: '' }) });
   assert.equal((await call('/api/site')).body.pieces[0].tag, 'random');
+});
+test('games and tools take interest messages instead of payment', async () => {
+  const up = await call('/api/admin/upload-url', { method: 'POST', headers: A(), body: JSON.stringify({}) });
+  for (const k of ['preview', 'original']) { const fd = new FormData(); fd.append('', new Blob([k], { type: 'image/png' })); await fetch(up.body[k].url, { method: 'PUT', body: fd }); }
+  assert.equal((await call('/api/admin/pieces', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Ojuju', cat: 'games', link: 'not a link', preview_path: up.body.preview.path, original_path: up.body.original.path }) })).status, 400);
+  const g = (await call('/api/admin/pieces', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Ojuju Calabar', cat: 'games', kind: 'photo', link: 'https://example.com/ojuju', preview_path: up.body.preview.path, original_path: up.body.original.path }) })).body.piece;
+  const site = (await call('/api/site')).body.pieces.find(p => p.id === g.id);
+  assert.equal(site.link, 'https://example.com/ojuju'); assert.equal(site.talk, true);
+  assert.equal((await call('/api/checkout', { method: 'POST', body: JSON.stringify({ pieceId: g.id, email: 'a@b.co', name: 'A' }) })).status, 400, 'cannot be bought directly');
+  assert.equal((await call('/api/enquire', { method: 'POST', body: JSON.stringify({ pieceId: g.id, name: 'Studio X', email: 'bad', message: 'hello there' }) })).status, 400);
+  assert.equal((await call('/api/enquire', { method: 'POST', body: JSON.stringify({ pieceId: piece.id, name: 'A', email: 'a@b.co', message: 'hello there' }) })).status, 404, 'art pieces are bought, not enquired');
+  const r = await call('/api/enquire', { method: 'POST', body: JSON.stringify({ pieceId: g.id, name: 'Studio X', email: 'hi@studiox.co', message: 'We would love to license this', budget: '₦200k' }) });
+  assert.equal(r.status, 201);
+  await new Promise(r => setTimeout(r, 50));
+  const mail = EMAILS.at(-1); assert.equal(mail.to[0], 'owner@test.dev'); assert.equal(mail.reply_to, 'hi@studiox.co'); assert(mail.subject.includes('Ojuju Calabar'));
+  assert.equal((await call('/api/admin/enquiries')).status, 401);
+  const list = (await call('/api/admin/enquiries', { headers: A() })).body.enquiries;
+  assert.equal(list[0].name, 'Studio X'); assert.equal((await call('/api/admin/stats', { headers: A() })).body.newMessages, 1);
+  await call('/api/admin/enquiries?id=' + list[0].id, { method: 'PATCH', headers: A(), body: JSON.stringify({ status: 'replied' }) });
+  assert.equal((await call('/api/admin/stats', { headers: A() })).body.newMessages, 0);
+  assert(!JSON.stringify((await call('/api/site')).body).includes('studiox'), 'messages are never public');
+  await call('/api/admin/pieces?id=' + g.id, { method: 'DELETE', headers: A() });
 });
 test('admin hides, edits and deletes a piece', async () => {
   await call('/api/admin/pieces?id=' + piece.id, { method: 'PATCH', headers: A(), body: JSON.stringify({ published: false, price: 2000, preview_path: 'hack' }) });

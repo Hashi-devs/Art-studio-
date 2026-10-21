@@ -4,7 +4,10 @@ import { json, fail, err, readJson, need, isEmail, randomHex } from './lib/http.
 const REF = /^[a-z]{2}_[a-z0-9_]{6,40}$/i;
 const UUID = /^[0-9a-f-]{36}$/i;
 const MAX_DOWNLOADS = 10;
-const CATS = ['arts', 'illustrations', 'stories', 'photos'];
+const CATS = ['arts', 'illustrations', 'stories', 'photos', 'games', 'tools'];
+// Games and tools aren't bought at a fixed price: people send their interest instead.
+const TALK = ['games', 'tools'];
+const cleanLink = v => { const u = String(v || '').trim().slice(0, 300); if (!u) return null; if (!/^https?:\/\/[^\s]+\.[^\s]+$/i.test(u)) throw err(400, 'The preview link should start with https://'); return u; };
 const KINDS = ['drawing', 'photo'];
 // Filter tags are whatever the admin types: lower case, letters, numbers, spaces, & ' -
 const cleanTag = v => String(v || '').toLowerCase().replace(/[^a-z0-9 &'-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24);
@@ -17,10 +20,10 @@ const PUBLIC_CACHE = { 'Cache-Control': 'public, max-age=0, s-maxage=30, stale-w
 // Everything the public page needs: listed pieces, goal and total raised.
 async function site({ sb, ord }) {
   const [rows, t] = await Promise.all([
-    sb.db.select('pieces', 'published=eq.true&select=id,name,cat,tag,kind,price,description,preview_path,created_at&order=created_at.desc'),
+    sb.db.select('pieces', 'published=eq.true&select=id,name,cat,tag,kind,price,description,link,preview_path,created_at&order=created_at.desc'),
     ord.totals(),
   ]);
-  const pieces = rows.map(p => ({ id: p.id, name: p.name, cat: p.cat, tag: p.tag, kind: p.kind, price: p.price, description: p.description || '', date: p.created_at, img: sb.storage.publicUrl('previews', p.preview_path) }));
+  const pieces = rows.map(p => ({ id: p.id, name: p.name, cat: p.cat, tag: p.tag, kind: p.kind, price: p.price, description: p.description || '', link: p.link || null, talk: TALK.includes(p.cat), date: p.created_at, img: sb.storage.publicUrl('previews', p.preview_path) }));
   return json(200, { ok: true, pieces, goal: t.goal, raised: t.raised, sold: t.sold }, PUBLIC_CACHE);
 }
 
@@ -38,8 +41,9 @@ async function checkout({ request, env, sb, ps }) {
   if (!(add >= 0 && add <= 1000000)) return fail(400, 'Enter an extra amount from ₦0');
   if (!isEmail(email)) return fail(400, 'Enter a valid email');
   if (!UUID.test(String(pieceId || ''))) return fail(400, 'Pick a piece first');
-  const [piece] = await sb.db.select('pieces', `id=eq.${pieceId}&published=eq.true&select=id,name,price`);
+  const [piece] = await sb.db.select('pieces', `id=eq.${pieceId}&published=eq.true&select=id,name,price,cat`);
   if (!piece) return fail(404, 'That piece is no longer available');
+  if (TALK.includes(piece.cat)) return fail(400, 'This one is by arrangement. Send your interest instead');
   const reference = ps.newReference('ar'), wall = onWall !== false;
   await sb.db.insert('orders', { reference, type: 'piece', piece_id: piece.id, piece_name: piece.name, email: email.trim(), note: String(note || '').trim().slice(0, 600) || null, buyer_name: who, extra: add, on_wall: wall, wall_ok: wall, amount: piece.price + add });
   const tx = await ps.initialize({ email: email.trim(), naira: piece.price + add, reference, callbackUrl: `${siteUrl(env)}/?ref=${reference}`, metadata: { type: 'piece', piece: piece.name }, method });
@@ -100,15 +104,62 @@ async function thanks({ sb }) {
   return json(200, { ok: true, people }, PUBLIC_CACHE);
 }
 
+// Someone interested in a game or tool. Saved for the admin page, and emailed to you when email is set up.
+async function enquire({ request, env, ctx, sb }) {
+  const { pieceId, name, email, message, budget } = await readJson(request);
+  const who = String(name || '').trim().slice(0, 60), text = String(message || '').trim().slice(0, 1500), bud = String(budget || '').trim().slice(0, 80) || null;
+  if (!who) return fail(400, 'Enter your name');
+  if (!isEmail(email)) return fail(400, 'Enter a valid email');
+  if (text.length < 5) return fail(400, 'Tell me a little about what you have in mind');
+  if (!UUID.test(String(pieceId || ''))) return fail(400, 'Pick a game or tool first');
+  const [piece] = await sb.db.select('pieces', `id=eq.${pieceId}&published=eq.true&select=id,name,cat`);
+  if (!piece || !TALK.includes(piece.cat)) return fail(404, 'That one is no longer available');
+  const row = await sb.db.insert('enquiries', { piece_id: piece.id, piece_name: piece.name, name: who, email: email.trim(), message: text, budget: bud });
+  const send = notify(env, {
+    subject: `New interest in ${piece.name} from ${who}`,
+    replyTo: email.trim(),
+    text: `${who} (${email.trim()}) is interested in ${piece.name}.\n\n${text}\n\n${bud ? 'Budget: ' + bud + '\n\n' : ''}Reply to this email to answer them, or see it in your admin page under Messages.`,
+  });
+  if (ctx && ctx.waitUntil) ctx.waitUntil(send); else await send;
+  return json(201, { ok: true, id: row.id });
+}
+
+// Emails you through Resend, if RESEND_API_KEY and NOTIFY_EMAIL are set. Never stops the request if it fails.
+async function notify(env, { subject, text, replyTo }) {
+  if (!env.RESEND_API_KEY || !env.NOTIFY_EMAIL) return;
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${String(env.RESEND_API_KEY).trim()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: env.NOTIFY_FROM || 'AR Studios <onboarding@resend.dev>', to: [String(env.NOTIFY_EMAIL).trim()], reply_to: replyTo, subject, text }),
+    });
+    if (!r.ok) console.warn('Email not sent', r.status, await r.text());
+  } catch (e) { console.warn('Email not sent', e.message); }
+}
+
 /* ---------- admin (every handler checks the login first) ---------- */
+
+// Messages about games and tools: list (GET) or mark as replied / closed (PATCH ?id=).
+async function enquiries({ request, url, sb }) {
+  await sb.adminUser(request);
+  if (request.method === 'GET') return json(200, { ok: true, enquiries: await sb.db.select('enquiries', 'select=*&order=created_at.desc&limit=100') });
+  const id = url.searchParams.get('id') || '';
+  if (!UUID.test(id)) return fail(400, 'Missing message id');
+  const status = (await readJson(request)).status;
+  if (!['new', 'replied', 'closed'].includes(status)) return fail(400, 'Unknown status');
+  const [row] = await sb.db.update('enquiries', `id=eq.${id}`, { status });
+  return row ? json(200, { ok: true, enquiry: row }) : fail(404, 'Message not found');
+}
+
 
 async function stats({ request, sb, ord }) {
   await sb.adminUser(request);
-  const [t, recent, pieces, paidPieces] = await Promise.all([
+  const [t, recent, pieces, paidPieces, fresh] = await Promise.all([
     ord.totals(),
     sb.db.select('orders', 'select=reference,type,piece_name,buyer_name,extra,on_wall,wall_ok,email,note,amount,status,downloads,created_at,paid_at&order=created_at.desc&limit=50'),
     sb.db.select('pieces', 'select=id,published'),
     sb.db.select('orders', 'status=eq.paid&type=eq.piece&select=piece_name'),
+    sb.db.select('enquiries', 'status=eq.new&select=id').catch(() => []),
   ]);
   const counts = {};
   paidPieces.forEach(o => { const k = o.piece_name || 'Removed piece'; counts[k] = (counts[k] || 0) + 1; });
@@ -118,7 +169,7 @@ async function stats({ request, sb, ord }) {
     pieces: pieces.length, live: pieces.filter(p => p.published).length,
     donations: recent.filter(o => o.type === 'donation' && o.status === 'paid').length,
     pending: recent.filter(o => o.status === 'pending').length,
-    top, recent,
+    top, recent, newMessages: fresh.length,
   });
 }
 
@@ -130,6 +181,7 @@ function cleanPiece(body, partial) {
   if (!partial || 'tag' in body) out.tag = cleanTag(body.tag) || 'random';
   if (!partial || 'kind' in body) out.kind = KINDS.includes(body.kind) ? body.kind : 'drawing';
   if (!partial || 'price' in body) { const p = Math.round(Number(body.price ?? 1000)); if (!(p >= 100 && p <= 1000000)) throw err(400, 'Price must be from ₦100'); out.price = p; }
+  if (!partial || 'link' in body) out.link = cleanLink(body.link);
   if (!partial || 'description' in body) out.description = String(body.description || '').trim().slice(0, 600) || null;
   if ('published' in body) out.published = !!body.published;
   if (!partial) {
@@ -216,6 +268,8 @@ export const routes = {
   '/api/verify': { GET: verify },
   '/api/paystack-webhook': { POST: webhook },
   '/api/thanks': { GET: thanks },
+  '/api/enquire': { POST: enquire },
+  '/api/admin/enquiries': { GET: enquiries, PATCH: enquiries },
   '/api/admin/stats': { GET: stats },
   '/api/admin/pieces': { GET: pieces, POST: pieces, PATCH: pieces, DELETE: pieces },
   '/api/admin/upload-url': { POST: uploadUrl },

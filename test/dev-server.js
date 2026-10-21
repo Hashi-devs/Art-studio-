@@ -16,16 +16,19 @@ export const ORIGIN = `http://localhost:${PORT}`;
 const ENV = {
   SUPABASE_URL: `${ORIGIN}/sb`, SUPABASE_SERVICE_ROLE_KEY: process.env.TEST_KEY || 'service-key', SUPABASE_ANON_KEY: 'anon-key',
   PAYSTACK_SECRET_KEY: 'sk_test_fake', ADMIN_EMAIL: 'admin@test.dev', SITE_URL: ORIGIN,
+  RESEND_API_KEY: 're_test', NOTIFY_EMAIL: 'owner@test.dev',
 };
 
 /* ---------- in-memory database ---------- */
-export const DB = { pieces: [], orders: [], settings: [{ id: 1, goal: 500000, updated_at: new Date().toISOString() }] };
+export const DB = { pieces: [], orders: [], enquiries: [], settings: [{ id: 1, goal: 500000, updated_at: new Date().toISOString() }] };
 export const FILES = {}; // "bucket/path" -> {type, buf}
 const USERS = { 'admin@test.dev': 'testpass', 'other@test.dev': 'otherpass' };
 const TOKENS = {};
-export const TX = {}; // paystack transactions by reference
+export const TX = {};
+export const EMAILS = []; // paystack transactions by reference
 const DEFAULTS = {
-  pieces: () => ({ id: crypto.randomUUID(), description: null, cat: 'arts', tag: 'random', kind: 'drawing', price: 1000, published: true, created_at: new Date().toISOString() }),
+  pieces: () => ({ id: crypto.randomUUID(), description: null, link: null, cat: 'arts', tag: 'random', kind: 'drawing', price: 1000, published: true, created_at: new Date().toISOString() }),
+  enquiries: () => ({ id: crypto.randomUUID(), status: 'new', budget: null, created_at: new Date().toISOString() }),
   orders: () => ({ id: crypto.randomUUID(), status: 'pending', downloads: 0, note: null, buyer_name: null, extra: 0, on_wall: true, wall_ok: true, piece_id: null, piece_name: null, created_at: new Date().toISOString(), paid_at: null }),
 };
 
@@ -123,6 +126,7 @@ async function supabase(req, res, url) {
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (u, opts = {}) => {
   const url = new URL(String(u));
+  if (url.hostname === 'api.resend.com') { EMAILS.push(JSON.parse(opts.body)); return new Response('{"id":"x"}'); }
   if (url.hostname !== 'api.paystack.co') return realFetch(u, opts);
   if (opts.headers.Authorization !== 'Bearer sk_test_fake') return new Response(JSON.stringify({ status: false, message: 'Invalid key' }), { status: 401 });
   if (url.pathname === '/transaction/initialize') {

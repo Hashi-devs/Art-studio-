@@ -23,7 +23,7 @@ img{display:block;max-width:100%}
 :focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:10px}
 .glass{background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);box-shadow:inset 0 0 0 1px var(--rim),0 10px 30px -12px rgba(0,0,0,.35)}
 .pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:99px;padding:12px 20px;font-weight:500;cursor:pointer;background:var(--btn);color:var(--btnInk);transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s}
-.pill:active{transform:scale(.96)}.pill:disabled{opacity:.35;cursor:not-allowed}
+.pill{text-decoration:none}.pill:active{transform:scale(.96)}.pill:disabled{opacity:.35;cursor:not-allowed}
 .pill.soft{background:var(--surf2);color:var(--ink)}.pill.sm{padding:8px 14px;font-size:14px}.pill.full{width:100%}
 .pill.danger{background:transparent;color:var(--bad);box-shadow:inset 0 0 0 1px var(--bad)}.pill.danger.arm{background:var(--bad);color:#fff}
 .ibtn{width:42px;height:42px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}.ibtn svg{width:21px;height:21px}
@@ -192,10 +192,11 @@ main{padding:22px 0 60px}
      <div class="field"><label class="l" for="pName">Name</label><input class="inp" id="pName" maxlength="80" placeholder="e.g. Ewuro"></div>
      <div class="field"><label class="l" for="pDesc">Description <span class="mut">(optional)</span></label><textarea class="inp" id="pDesc" maxlength="600" rows="3" placeholder="What it is, the story behind it, what you used…"></textarea></div>
      <div class="row">
-      <div class="field"><label class="l" for="pCat">Section</label><select class="inp" id="pCat"><option value="arts">Arts</option><option value="illustrations">Illustrations</option><option value="stories">Stories</option><option value="photos">Photos</option></select></div>
+      <div class="field"><label class="l" for="pCat">Section</label><select class="inp" id="pCat"><option value="arts">Arts</option><option value="illustrations">Illustrations</option><option value="stories">Stories</option><option value="photos">Photos</option><option value="games">Games</option><option value="tools">Tools</option></select></div>
       <div class="field"><label class="l" for="pTag">Filter tag</label><input class="inp" id="pTag" list="tagList" maxlength="24" autocomplete="off" placeholder="Type a tag, e.g. people"><div class="tags" id="tagChips"></div></div>
      </div>
-     <div class="field"><label class="l" for="pPrice">Price in naira</label><input class="inp" id="pPrice" inputmode="numeric" value="1000"></div>
+     <div class="field" id="priceF"><label class="l" for="pPrice">Price in naira</label><input class="inp" id="pPrice" inputmode="numeric" value="1000"></div>
+     <div class="field" id="linkF" hidden><label class="l" for="pLink">Preview link</label><input class="inp" id="pLink" type="url" inputmode="url" placeholder="https://…" maxlength="300"><p class="hint">Where people can try it. Games and tools have no price: buyers send you their interest instead, and it lands in Messages.</p></div>
      <label class="check"><input type="checkbox" id="pLive" checked> List it on the site now</label>
      <button class="pill full" id="addBtn" type="submit" disabled>Upload piece</button>
      <p class="err" id="addErr" role="alert"></p>
@@ -209,6 +210,7 @@ main{padding:22px 0 60px}
   </div>
 
   <div>
+   <section class="card sec" aria-labelledby="msgH"><div class="h"><h2 id="msgH">Messages</h2><span class="mut" id="msgN"></span></div><div class="olist" id="mlist"><div class="empty">No messages yet. When someone is interested in a game or tool, it shows up here.</div></div></section>
    <section class="card sec" aria-labelledby="topH"><h2 id="topH">Best sellers</h2><ol class="top5" id="top5"></ol></section>
    <section class="card sec" aria-labelledby="ordH"><div class="h"><h2 id="ordH">Recent orders</h2><span class="mut" id="pendN"></span></div><div class="olist" id="olist"></div></section>
   </div>
@@ -540,7 +542,8 @@ const toBlob = (canvas, type = 'image/png', q = .92) => new Promise(r => canvas.
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const naira=n=>'₦'+Math.round(n||0).toLocaleString('en-NG');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const CATN={arts:'Arts',illustrations:'Illustrations',stories:'Stories',photos:'Photos'};
+const CATN={arts:'Arts',illustrations:'Illustrations',stories:'Stories',photos:'Photos',games:'Games',tools:'Tools'};
+const TALK=['games','tools'];
 let CFG=null,SES=null,toastT;
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600)}
 $('#today').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
@@ -604,7 +607,7 @@ function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.leng
  l.replaceChildren(...PIECES.map(p=>{const d=document.createElement('div');d.className='pc'+(p.published?'':' off');
   d.innerHTML='<div class="th"><img alt="" loading="lazy"></div><div><h3></h3><small></small></div><div class="acts"><button class="pill soft sm" data-a="live" type="button"></button><button class="pill soft sm" data-a="edit" type="button">Edit</button><button class="pill danger sm" data-a="del" type="button">Delete</button></div>';
   d.querySelector('img').src=p.img;d.querySelector('h3').innerHTML=esc(p.name)+'<span class="chip'+(p.published?' live':'')+'">'+(p.published?'Listed':'Delisted')+'</span>';
-  d.querySelector('small').textContent=CATN[p.cat]+' · '+(p.tag||'random')+' · '+naira(p.price)+' · '+p.sold+' sold';
+  d.querySelector('small').textContent=CATN[p.cat]+' · '+(p.tag||'random')+' · '+(TALK.includes(p.cat)?'by arrangement':naira(p.price)+' · '+p.sold+' sold');
   const lb=d.querySelector('[data-a=live]');lb.textContent=p.published?'Delist':'List again';
   lb.onclick=()=>patch(p,{published:!p.published},p.published?'Delisted. Buyers can’t see or buy it':'Listed again');
   d.querySelector('[data-a=edit]').onclick=()=>editForm(d,p);
@@ -614,10 +617,10 @@ function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.leng
   return d}))}
 async function patch(p,body,msg){try{const r=await api('/admin/pieces?id='+p.id,{method:'PATCH',body:JSON.stringify(body)});Object.assign(p,r.piece);renderPieces();toast(msg||'Saved');loadStats()}catch(e){toast(e.message)}}
 function editForm(card,p){if(card.querySelector('form'))return card.querySelector('form').remove();const f=document.createElement('form');
- f.innerHTML='<div class="field"><label class="l">Name</label><input class="inp" name="name" maxlength="80"></div><div class="field"><label class="l">Description</label><textarea class="inp" name="description" maxlength="600" rows="3"></textarea></div><div class="row"><div class="field"><label class="l">Section</label><select class="inp" name="cat">'+Object.entries(CATN).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></div><div class="field"><label class="l">Filter tag</label><input class="inp" name="tag" list="tagList" maxlength="24" autocomplete="off"></div></div><div class="row"><div class="field"><label class="l">Price in naira</label><input class="inp" name="price" inputmode="numeric"></div><div class="field"><label class="l">Kind</label><select class="inp" name="kind"><option value="drawing">Drawing (line art)</option><option value="photo">Photo or colour</option></select></div></div><div style="display:flex;gap:8px"><button class="pill sm" type="submit">Save</button><button class="pill soft sm" type="button" data-x>Cancel</button></div>';
- for(const k of ['name','description','cat','tag','price','kind'])f.elements[k].value=p[k]??'';
+ f.innerHTML='<div class="field"><label class="l">Name</label><input class="inp" name="name" maxlength="80"></div><div class="field"><label class="l">Description</label><textarea class="inp" name="description" maxlength="600" rows="3"></textarea></div><div class="field"><label class="l">Preview link (games and tools)</label><input class="inp" name="link" type="url" maxlength="300" placeholder="https://…"></div><div class="row"><div class="field"><label class="l">Section</label><select class="inp" name="cat">'+Object.entries(CATN).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></div><div class="field"><label class="l">Filter tag</label><input class="inp" name="tag" list="tagList" maxlength="24" autocomplete="off"></div></div><div class="row"><div class="field"><label class="l">Price in naira</label><input class="inp" name="price" inputmode="numeric"></div><div class="field"><label class="l">Kind</label><select class="inp" name="kind"><option value="drawing">Drawing (line art)</option><option value="photo">Photo or colour</option></select></div></div><div style="display:flex;gap:8px"><button class="pill sm" type="submit">Save</button><button class="pill soft sm" type="button" data-x>Cancel</button></div>';
+ for(const k of ['name','description','link','cat','tag','price','kind'])f.elements[k].value=p[k]??'';
  f.querySelector('[data-x]').onclick=()=>f.remove();
- f.onsubmit=e=>{e.preventDefault();patch(p,{name:f.elements.name.value,description:f.elements.description.value,cat:f.elements.cat.value,tag:cleanTag(f.elements.tag.value),price:+f.elements.price.value.replace(/\D/g,''),kind:f.elements.kind.value})};
+ f.onsubmit=e=>{e.preventDefault();patch(p,{name:f.elements.name.value,link:f.elements.link.value,description:f.elements.description.value,cat:f.elements.cat.value,tag:cleanTag(f.elements.tag.value),price:+f.elements.price.value.replace(/\D/g,''),kind:f.elements.kind.value})};
  card.append(f);f.elements.name.focus()}
 
 /* filter tags: type your own; every tag you've used is remembered and offered again */
@@ -692,6 +695,7 @@ $('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;U.file=f;U.
  try{const r=await digitise(f,{maxSize:700});setKind(r.kind)}catch(err){setKind('photo')}
  setTool('move');prep()};
 $('#pPrice').oninput=e=>e.target.value=e.target.value.replace(/\D/g,'');
+const syncCat=()=>{const tk=TALK.includes($('#pCat').value);$('#linkF').hidden=!tk;$('#priceF').hidden=tk};$('#pCat').addEventListener('change',syncCat);
 $('#pName').oninput=syncAdd;
 function syncAdd(){$('#addBtn').disabled=U.busy||!U.out||!$('#pName').value.trim()}
 async function putFile(url,blob){const fd=new FormData();fd.append('cacheControl','31536000');fd.append('',blob);
@@ -713,12 +717,25 @@ $('#addForm').onsubmit=async e=>{e.preventDefault();if($('#addBtn').disabled)ret
   const up=await api('/admin/upload-url',{method:'POST',body:JSON.stringify({ext:extOf(original),previewExt:extOf(preview)})});
   btn.textContent='Uploading…';await Promise.all([putFile(up.preview.url,preview),putFile(up.original.url,original)]);
   btn.textContent='Saving…';
-  const r=await api('/admin/pieces',{method:'POST',body:JSON.stringify({name,description:$('#pDesc').value.trim(),cat:$('#pCat').value,tag,kind,price,published:$('#pLive').checked,preview_path:up.preview.path,original_path:up.original.path})});
+  const r=await api('/admin/pieces',{method:'POST',body:JSON.stringify({name,link:$('#pLink').value.trim(),description:$('#pDesc').value.trim(),cat:$('#pCat').value,tag,kind,price,published:$('#pLive').checked,preview_path:up.preview.path,original_path:up.original.path})});
   tagStore.add(tag);toast(name+(r.piece.published?' is live':' is saved (delisted)'));resetAdd();loadPieces();loadStats()}
  catch(x){err.textContent=x.message}finally{btn.textContent='Upload piece';syncAdd()}};
-function resetAdd(){U.file=null;if(U.out)U.out.remove();U.out=U.base=null;U.strokes=[];$('#file').value='';$('#drop').hidden=false;$('#ed').hidden=true;$('#tools').hidden=true;$('#pName').value='';$('#pDesc').value='';$('#pTag').value='';renderTags();syncEd();syncAdd()}
+function resetAdd(){U.file=null;if(U.out)U.out.remove();U.out=U.base=null;U.strokes=[];$('#file').value='';$('#drop').hidden=false;$('#ed').hidden=true;$('#tools').hidden=true;$('#pName').value='';$('#pDesc').value='';$('#pLink').value='';$('#pTag').value='';renderTags();syncEd();syncAdd()}
 
-async function loadAll(){try{await Promise.all([loadStats(),loadPieces()])}catch(e){toast(e.message)}}
+async function loadMessages(){const l=$('#mlist'),ms=(await api('/admin/enquiries')).enquiries,fresh=ms.filter(m=>m.status==='new').length;
+ $('#msgN').textContent=fresh?fresh+' new':'';if(!ms.length)return;
+ const when=d=>new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+ l.replaceChildren(...ms.map(m=>{const d=document.createElement('div');d.className='o';
+  d.innerHTML='<b></b><span class="st"></span><small></small><small></small><div class="note"></div>';
+  d.querySelector('b').textContent=m.piece_name||'Game or tool';const st=d.querySelector('.st');st.textContent=m.status;st.classList.add(m.status==='new'?'pending':'paid');
+  const sm=d.querySelectorAll('small');sm[0].textContent=m.name+' · '+m.email+(m.budget?' · '+m.budget:'');sm[1].textContent=when(m.created_at);
+  d.querySelector('.note').textContent=m.message;
+  const row=document.createElement('div');row.className='wall';row.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+  const rep=document.createElement('a');rep.className='pill sm';rep.textContent='Reply';rep.href='mailto:'+encodeURIComponent(m.email)+'?subject='+encodeURIComponent('Re: '+(m.piece_name||'AR Studios'));
+  const cp=document.createElement('button');cp.type='button';cp.className='pill soft sm';cp.textContent='Copy email';cp.onclick=async()=>{try{await navigator.clipboard.writeText(m.email);toast('Email copied')}catch(e){toast(m.email)}};
+  const mk=(lab,s)=>{const b=document.createElement('button');b.type='button';b.className='pill soft sm';b.textContent=lab;b.onclick=async()=>{try{await api('/admin/enquiries?id='+m.id,{method:'PATCH',body:JSON.stringify({status:s})});toast('Marked '+s);loadMessages()}catch(e){toast(e.message)}};return b};
+  row.append(rep,cp,m.status==='new'?mk('Mark replied','replied'):mk('Mark new','new'));if(m.status!=='closed')row.append(mk('Close','closed'));d.append(row);return d}))}
+async function loadAll(){try{await Promise.all([loadStats(),loadPieces(),loadMessages()])}catch(e){toast(e.message)}}
 $('#refresh').onclick=()=>loadAll().then(()=>toast('Up to date'));
 
 /* start */
