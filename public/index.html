@@ -236,13 +236,11 @@ textarea.inp{min-height:110px;resize:vertical}
 .pwrap{max-width:880px;margin:0 auto;padding:0 20px 90px;min-height:100%}
 .pwrap .bar2{height:64px;display:flex;align-items:center;position:sticky;top:0}
 .thead{text-align:center;margin:8px 0 34px}.thead h2{font-size:clamp(44px,10vw,72px);line-height:1}.thead p{color:var(--mut);margin:12px auto 0;max-width:40ch}
-.names{padding:clamp(16px,3.5vw,30px) 0 clamp(16px,3.5vw,30px) clamp(14px,3vw,28px);border-radius:24px;background:var(--surf);border:1px solid var(--line);overflow:hidden}
-.nrow{white-space:nowrap;line-height:1.08}
-.nm{display:inline;border:0;background:none;padding:0;margin:0 .34em 0 0;color:var(--ink);cursor:pointer;font:700 clamp(22px,6.4vw,54px)/1.08 "Bricolage Grotesque",system-ui,sans-serif;text-transform:uppercase;letter-spacing:-.015em;transition:opacity .2s}
+.names{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:.1em .7em;text-align:center;font-size:clamp(28px,7.4vw,56px);padding:.2em 0}
+.nm{border:0;background:none;padding:0;margin:0;color:var(--ink);cursor:pointer;font:400 1em/1.15 "IM Fell English",Georgia,serif;letter-spacing:-.005em;overflow-wrap:anywhere;transition:opacity .2s}
 .nm:active{opacity:.55}
 @media(hover:hover){.names:hover .nm{opacity:.35}.names .nm:hover{opacity:1}}
-.nrow{font-size:clamp(22px,6.4vw,54px)}
-.names .empty{text-align:center;padding:10px 20px 10px 0}
+.names .empty{width:100%;font-size:16px}
 .wmeta{margin:-2px 0 16px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
 .wmsg{margin:0;font-family:"IM Fell English",Georgia,serif;font-size:22px;line-height:1.4;padding:6px 0 6px 16px;border-left:2px solid var(--faint);white-space:pre-line}
 .wmsg.none{font-family:inherit;font-size:15px;color:var(--mut)}
@@ -988,14 +986,8 @@ async function openThanks(){openOv('thanks');const box=$('#names');
  if(!PEOPLE){box.innerHTML='<div class="empty"><span>Loading…</span></div>';
   if(LIVE){try{PEOPLE=(await api('/thanks')).people}catch(e){box.innerHTML='<div class="empty"><span></span></div>';box.querySelector('span').textContent=e.message;return}}else PEOPLE=DEMO_THANKS}
  if(!PEOPLE.length){box.innerHTML='<div class="empty"><h3>Your name could be first</h3><span>Pick a piece or donate, and you’ll show up here.</span></div>';return}
- // a mural: rows of names in bold capitals, each row nudged a little and running off the edge.
- // With only a few names the list repeats to fill the wall.
- const PER=7,MINROWS=14,n=Math.max(PER*MINROWS,PEOPLE.length),wall=[];for(let i=0;i<n;i++)wall.push([PEOPLE[i%PEOPLE.length],i<PEOPLE.length]);
- const NUDGE=[0,.55,1.3,.2,.95,.4,1.6,.1,.75,1.15],rows=[];
- for(let r=0;r*PER<wall.length;r++){const row=document.createElement('div');row.className='nrow';row.style.paddingLeft=NUDGE[r%NUDGE.length]+'em';
-  wall.slice(r*PER,r*PER+PER).forEach(([p,first])=>{const b=document.createElement('button');b.type='button';b.className='nm';b.textContent=p.name;b.onclick=()=>openWho(p);
-   if(!first){b.tabIndex=-1;b.setAttribute('aria-hidden','true')}row.append(b)});rows.push(row)}
- box.replaceChildren(...rows)}
+ // every name once, as the person wrote it, centred and widely spaced so each line ends where it ends
+ box.replaceChildren(...PEOPLE.map(p=>{const b=document.createElement('button');b.type='button';b.className='nm';b.textContent=p.name;b.onclick=()=>openWho(p);return b}))}
 function openWho(p){$('#wName').textContent=p.name;$('#wMeta').textContent=(p.type==='donation'?'Donated':'Bought a piece')+' · '+fmtDate(p.date);
  $('#wItem').hidden=!p.piece;if(p.piece){$('#wImg').src=p.piece.img||'';$('#wThumb').className='thumb'+(p.piece.kind==='drawing'?' d':'');$('#wPiece').textContent=p.piece.name}
  const m=$('#wMsg');m.textContent=p.message||'No message, just kindness.';m.classList.toggle('none',!p.message);openOv('who')}
