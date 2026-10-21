@@ -21,7 +21,8 @@ export default {
     }
     try {
       // Built per request from your settings, so a missing setting gives a clear message.
-      const sb = url.pathname === '/api/config' ? null : supabase(env);
+      const light = url.pathname === '/api/config' || url.pathname === '/api/health';
+      const sb = light ? null : supabase(env);
       const ps = paystack(env);
       return await handler({ request, env, ctx, url, sb, ps, ord: sb && orders(sb, ps) });
     } catch (e) {

@@ -23,6 +23,11 @@ test('pages, 404s and private files are served correctly', async () => {
   assert.equal((await call('/api/nothing')).status, 404);
   assert.equal((await call('/api/site', { method: 'POST' })).status, 405);
 });
+test('health lists setting names only', async () => {
+  const r = await call('/api/health');
+  assert.equal(r.body.ok, true); assert.equal(r.body.settings.SUPABASE_URL, 'found');
+  assert(!JSON.stringify(r.body).includes('service-key') && !JSON.stringify(r.body).includes('sk_test'));
+});
 test('site works with an empty shop', async () => {
   const r = await call('/api/site');
   assert.equal(r.status, 200); assert.deepEqual(r.body.pieces, []); assert.equal(r.body.raised, 0); assert.equal(r.body.goal, 500000);

@@ -198,8 +198,17 @@ async function adminOrders({ request, url, sb }) {
   return json(200, { ok: true, on_wall: row.on_wall });
 }
 
+// Which settings the Worker can see (names only, never values), to help with setup.
+async function health({ env }) {
+  const want = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'PAYSTACK_SECRET_KEY', 'ADMIN_EMAIL', 'SITE_URL'];
+  const settings = Object.fromEntries(want.map(k => [k, env[k] ? 'found' : 'MISSING']));
+  const near = Object.keys(env).filter(k => k !== 'ASSETS' && !want.includes(k)); // misspelled names show up here
+  return json(200, { ok: want.every(k => env[k]), settings, otherNames: near });
+}
+
 // path → { METHOD: handler }
 export const routes = {
+  '/api/health': { GET: health },
   '/api/site': { GET: site },
   '/api/config': { GET: config },
   '/api/checkout': { POST: checkout },
