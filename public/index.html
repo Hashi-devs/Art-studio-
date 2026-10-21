@@ -16,7 +16,7 @@
 *{box-sizing:border-box}[hidden]{display:none!important}
 html{scroll-behavior:smooth;scroll-padding-top:72px;overflow-x:clip}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Bricolage Grotesque",system-ui,-apple-system,sans-serif;transition:background .35s,color .35s;-webkit-tap-highlight-color:transparent}
-body.lock{overflow:hidden}
+body.lock{overflow:hidden;position:fixed;left:0;right:0;width:100%}.ov{overscroll-behavior:contain;touch-action:pan-y}.sheet{overscroll-behavior:contain}
 h1,h2,h3{font-family:"IM Fell English",Georgia,"Times New Roman",serif;font-weight:400;margin:0;letter-spacing:-.01em}
 a{color:inherit}img{display:block;max-width:100%}
 .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
@@ -859,9 +859,14 @@ document.addEventListener('pointerdown',e=>{if(e.target.closest('button,a,.opt')
 
 /* overlays */
 let lastFocus=null;
-function openOv(id){const o=document.getElementById(id);lastFocus=document.activeElement;o.classList.add('show');document.body.classList.add('lock');
+let lockY=0;
+function guard(){const b=document.body,top=$$('.ov.show').pop();
+ if(top&&!b.classList.contains('lock')){lockY=scrollY;b.style.top=-lockY+'px';b.classList.add('lock')}
+ if(!top&&b.classList.contains('lock')){b.classList.remove('lock');b.style.top='';const h=document.documentElement,s=h.style.scrollBehavior;h.style.scrollBehavior='auto';scrollTo(0,lockY);h.style.scrollBehavior=s}
+ [...b.children].forEach(el=>{if(el.tagName!=='SCRIPT'&&el.id!=='intro')el.inert=!!top&&el!==top})}
+function openOv(id){const o=document.getElementById(id);lastFocus=document.activeElement;o.classList.add('show');guard();
  setTimeout(()=>{const f=o.querySelector('input,button,a');f&&f.focus({preventScroll:true})},60)}
-function closeOv(o){o.classList.remove('show');if(!$$('.ov.show').length)document.body.classList.remove('lock');lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})}
+function closeOv(o){o.classList.remove('show');guard();lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})}
 $$('.ov').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o||e.target.closest('[data-close]'))closeOv(o)})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const o=$$('.ov.show').pop();o&&closeOv(o)}});
 $('#menuBtn').onclick=()=>{$('#menuBtn').setAttribute('aria-expanded','true');openOv('menu')};
