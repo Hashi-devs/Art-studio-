@@ -156,9 +156,10 @@ section{padding:56px 0}
 .soc{display:flex;justify-content:center;gap:12px;margin:24px 0 6px}
 .soc a{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--ink);text-decoration:none;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
 .soc a:active{transform:scale(.9)}.soc svg{width:20px;height:20px}
-.foot{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--mut)}
+.foot{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--mut)}
 .foot .l{display:flex;align-items:center;gap:8px}.foot .l svg{height:16px;width:auto;color:var(--ink)}
-.heart{color:var(--ink)}.heart.on svg{fill:currentColor;animation:beat .5s}
+.made{white-space:nowrap;font-size:13px}
+.heart{display:inline-grid;place-items:center;width:28px;height:28px;margin:-8px -4px;padding:0;border:0;background:none;color:#e0453a;vertical-align:middle;cursor:pointer}.heart svg{width:16px;height:16px}.heart.on svg{animation:beat .5s}
 @keyframes beat{40%{transform:scale(1.3)}}
 .credit{text-align:center;font-size:12px;color:var(--faint);margin:18px 0 0}
 
@@ -305,7 +306,7 @@ textarea.inp{min-height:110px;resize:vertical}
     <a class="glass" href="https://www.instagram.com/artistaamuro" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
    </div>
    <div class="foot"><span class="l"><svg viewBox="-4 -4 102 56" fill="currentColor" stroke="currentColor" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="M2 47 L23 2 L44 47 Z"/><path fill-rule="evenodd" d="M52 1 H74 C93 1 93 29 73 29 Q83 38 92 47 H79 Q71 38 64 30 H63 V47 H52 Z M62 8 V22 H73 C82 22 82 8 73 8 Z"/></svg><span id="yr">2026</span></span>
-    <button class="ibtn heart" id="heart" type="button" aria-label="Send some love" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg></button></div>
+    <span class="made">Made with <button class="heart" id="heart" type="button" aria-label="Send some love" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg></button> by Àmúró and Klaus</span></div>
   </div>
  </div></section>
 </main>

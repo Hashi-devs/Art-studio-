@@ -165,7 +165,7 @@ main{padding:22px 0 60px}
       <div class="field"><label class="l" for="pTag">Filter tag</label><select class="inp" id="pTag"><option value="people">People</option><option value="things">Things</option><option value="anime">Anime</option><option value="random" selected>Random</option></select></div>
      </div>
      <div class="field"><label class="l" for="pPrice">Price in naira</label><input class="inp" id="pPrice" inputmode="numeric" value="1000"></div>
-     <label class="check"><input type="checkbox" id="pLive" checked> Show it on the site now</label>
+     <label class="check"><input type="checkbox" id="pLive" checked> List it on the site now</label>
      <button class="pill full" id="addBtn" type="submit" disabled>Upload piece</button>
      <p class="err" id="addErr" role="alert"></p>
     </form>
@@ -503,10 +503,10 @@ function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.leng
  if(!PIECES.length){l.innerHTML='<div class="empty">Nothing yet. Add your first piece above.</div>';return}
  l.replaceChildren(...PIECES.map(p=>{const d=document.createElement('div');d.className='pc'+(p.published?'':' off');
   d.innerHTML='<div class="th"><img alt="" loading="lazy"></div><div><h3></h3><small></small></div><div class="acts"><button class="pill soft sm" data-a="live" type="button"></button><button class="pill soft sm" data-a="edit" type="button">Edit</button><button class="pill danger sm" data-a="del" type="button">Delete</button></div>';
-  d.querySelector('img').src=p.img;d.querySelector('h3').innerHTML=esc(p.name)+'<span class="chip'+(p.published?' live':'')+'">'+(p.published?'Live':'Hidden')+'</span>';
+  d.querySelector('img').src=p.img;d.querySelector('h3').innerHTML=esc(p.name)+'<span class="chip'+(p.published?' live':'')+'">'+(p.published?'Listed':'Delisted')+'</span>';
   d.querySelector('small').textContent=CATN[p.cat]+' · '+p.tag+' · '+naira(p.price)+' · '+p.sold+' sold';
-  const lb=d.querySelector('[data-a=live]');lb.textContent=p.published?'Hide':'Show';
-  lb.onclick=()=>patch(p,{published:!p.published},p.published?'Hidden from the site':'Live on the site');
+  const lb=d.querySelector('[data-a=live]');lb.textContent=p.published?'Delist':'List again';
+  lb.onclick=()=>patch(p,{published:!p.published},p.published?'Delisted. Buyers can’t see or buy it':'Listed again');
   d.querySelector('[data-a=edit]').onclick=()=>editForm(d,p);
   const del=d.querySelector('[data-a=del]');let armed=0;
   del.onclick=async()=>{if(!armed){armed=setTimeout(()=>{armed=0;del.classList.remove('arm');del.textContent='Delete'},3000);del.classList.add('arm');del.textContent='Tap again';return}
@@ -559,7 +559,7 @@ $('#addForm').onsubmit=async e=>{e.preventDefault();if($('#addBtn').disabled)ret
   btn.textContent='Uploading…';await Promise.all([putFile(up.preview.url,preview),putFile(up.original.url,original)]);
   btn.textContent='Saving…';
   const r=await api('/admin/pieces',{method:'POST',body:JSON.stringify({name,cat:$('#pCat').value,tag:$('#pTag').value,kind,price,published:$('#pLive').checked,preview_path:up.preview.path,original_path:up.original.path})});
-  toast(name+(r.piece.published?' is live':' is saved (hidden)'));resetAdd();loadPieces();loadStats()}
+  toast(name+(r.piece.published?' is live':' is saved (delisted)'));resetAdd();loadPieces();loadStats()}
  catch(x){err.textContent=x.message}finally{btn.textContent='Upload piece';syncAdd()}};
 function resetAdd(){U.file=null;U.out=null;$('#file').value='';const d=$('#drop');d.classList.remove('has');d.querySelectorAll('canvas,.again').forEach(n=>n.remove());$('#dropTxt').hidden=false;$('#tools').hidden=true;$('#pName').value='';syncAdd()}
 
