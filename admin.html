@@ -70,6 +70,24 @@ main{padding:22px 0 60px}
 .drop canvas{max-width:100%;max-height:340px;display:block}
 .drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .drop.has input{display:none}
+.ed{margin:0}
+.vp{position:relative;height:min(62vh,520px);border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#fff;background-image:repeating-conic-gradient(#eee 0 25%,#fff 0 50%);background-size:14px 14px;touch-action:none;cursor:grab}
+.vp.erase{cursor:none}
+.vp canvas{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;image-rendering:auto}
+.vp .busy{position:absolute;inset:0;display:grid;place-items:center;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--ink);font-weight:500;z-index:3}
+.ring{position:absolute;left:0;top:0;border:1.5px solid #e0453a;background:rgba(224,69,58,.12);border-radius:50%;pointer-events:none;z-index:2;transform:translate(-50%,-50%)}
+.zhint{position:absolute;left:10px;bottom:10px;z-index:2;font-size:12px;padding:5px 10px;border-radius:99px;color:var(--ink);pointer-events:none}
+.edbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px}
+.edbar .tools2{display:flex;gap:4px;padding:4px;border-radius:99px;background:var(--surf2)}
+.edbar .tools2 button{border:0;background:transparent;border-radius:99px;padding:8px 14px;cursor:pointer;font-size:14px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.edbar .tools2 button svg{width:16px;height:16px}
+.edbar .tools2 button[aria-pressed="true"]{background:var(--surf);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.ib{min-width:38px;height:38px;border-radius:99px;border:0;background:var(--surf2);cursor:pointer;font-size:14px;padding:0 12px}
+.ib:disabled{opacity:.35}
+.edbar .sp{flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tags button{border:1px solid var(--line);background:var(--bg);border-radius:99px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--mut)}
+.tags button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}
 .drop .busy{position:absolute;inset:0;display:grid;place-items:center;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--ink);font-weight:500}
 .seg{display:flex;gap:4px;padding:4px;border-radius:99px;background:var(--surf2);margin:12px 0 0}
 .seg button{flex:1;border:0;background:transparent;border-radius:99px;padding:9px 8px;cursor:pointer;font-size:14px;color:var(--mut)}
@@ -151,8 +169,18 @@ main{padding:22px 0 60px}
    <section class="card sec" aria-labelledby="addH">
     <h2 id="addH">Add a piece</h2>
     <div class="drop" id="drop"><input type="file" id="file" accept="image/*" aria-label="Choose an image"><div id="dropTxt"><b>Tap to choose an image</b><br><span class="mut">A photo of a drawing, a digital illustration or a photo</span></div></div>
+    <div class="ed" id="ed" hidden>
+     <div class="vp" id="vp"><div class="ring" id="ring" hidden></div><span class="zhint glass" id="zHint">Pinch or use + / − to zoom</span></div>
+     <div class="edbar">
+      <div class="tools2" role="group" aria-label="Tool"><button type="button" data-t="move" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>Move</button><button type="button" data-t="erase" aria-pressed="false" id="eraseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H9L4 15a2 2 0 0 1 0-3l8-8a2 2 0 0 1 3 0l5 5a2 2 0 0 1 0 3l-8 8M8.5 9.5l6 6"/></svg>Erase</button></div>
+      <button class="ib" type="button" id="zOut" aria-label="Zoom out">−</button><button class="ib" type="button" id="zIn" aria-label="Zoom in">+</button><button class="ib" type="button" id="zFit">Fit</button>
+      <span class="sp"></span><button class="ib" type="button" id="edUndo" disabled>Undo</button><button class="ib" type="button" id="edClear" disabled>Undo all</button>
+     </div>
+     <label class="tune" id="brushRow" hidden><span>Eraser size</span><input type="range" id="brush" min="6" max="140" value="36"></label>
+     <button class="pill soft sm" type="button" id="changeImg" style="margin-top:10px">Change image</button>
+    </div>
     <div id="tools" hidden>
-     <div class="seg" role="group" aria-label="What is it">
+     <div class="seg" id="kindSeg" role="group" aria-label="What is it">
       <button type="button" data-k="drawing" aria-pressed="true">Drawing</button><button type="button" data-k="photo" aria-pressed="false">Photo</button><button type="button" data-k="asis" aria-pressed="false">As it is</button>
      </div>
      <p class="hint" id="kindHint"></p>
@@ -164,7 +192,7 @@ main{padding:22px 0 60px}
      <div class="field"><label class="l" for="pDesc">Description <span class="mut">(optional)</span></label><textarea class="inp" id="pDesc" maxlength="600" rows="3" placeholder="What it is, the story behind it, what you used…"></textarea></div>
      <div class="row">
       <div class="field"><label class="l" for="pCat">Section</label><select class="inp" id="pCat"><option value="arts">Arts</option><option value="illustrations">Illustrations</option><option value="stories">Stories</option><option value="photos">Photos</option></select></div>
-      <div class="field"><label class="l" for="pTag">Filter tag</label><select class="inp" id="pTag"><option value="people">People</option><option value="things">Things</option><option value="anime">Anime</option><option value="random" selected>Random</option></select></div>
+      <div class="field"><label class="l" for="pTag">Filter tag</label><input class="inp" id="pTag" list="tagList" maxlength="24" autocomplete="off" placeholder="Type a tag, e.g. people"><div class="tags" id="tagChips"></div></div>
      </div>
      <div class="field"><label class="l" for="pPrice">Price in naira</label><input class="inp" id="pPrice" inputmode="numeric" value="1000"></div>
      <label class="check"><input type="checkbox" id="pLive" checked> List it on the site now</label>
@@ -186,6 +214,7 @@ main{padding:22px 0 60px}
  </div>
 </div></main>
 
+<datalist id="tagList"></datalist>
 <div class="toast glass" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -370,24 +399,84 @@ function removeRules(A, W, H) {
   if (lines.length < 3) return;
   const gap = lines.length > 1 ? Math.min(...lines.map(l => Math.min(...lines.filter(m => m !== l).map(m => Math.abs(m.yc - l.yc))))) : 40;
   const R = Math.max(3, Math.min(14, Math.round(gap * .25))), SEG = Math.max(40, Math.round(W / 12));
+  const tracks = [];
   for (const { t, g0, g1 } of lines) {
-    const th = g1 - g0 + 1, pad = Math.max(3, Math.round(th * .5) + 2);
+    const mid = (g0 + g1) / 2;
+    let th = g1 - g0 + 1, pad = 2;
+    // 1. coarse offset per segment
+    const cx = [], cy = [];
     for (let s0 = 0; s0 < W; s0 += SEG) {
-      const s1 = Math.min(W, s0 + SEG);
-      let best = 0, bs = -1;
+      const s1 = Math.min(W, s0 + SEG); let best = 0, bs = -1;
       for (let dy = -R; dy <= R; dy++) { let sum = 0;
-        for (let xx = s0; xx < s1; xx += 2) { const yc = Math.round(xx * t + (g0 + g1) / 2) + dy; if (yc >= 0 && yc < H) sum += A[yc * W + xx]; }
+        for (let xx = s0; xx < s1; xx += 2) { const yc = Math.round(xx * t + mid) + dy; if (yc >= 0 && yc < H) sum += A[yc * W + xx]; }
         if (sum > bs) { bs = sum; best = dy; } }
-      for (let xx = s0; xx < s1; xx++) {
-        const ya = Math.max(0, Math.floor(xx * t + g0) + best - pad), yb = Math.min(H - 1, Math.ceil(xx * t + g1) + best + pad);
-        if (ya > yb) continue;
-        let up = ya, dn = yb;
-        while (up > 0 && A[(up - 1) * W + xx] > 60) up--;
-        while (dn < H - 1 && A[(dn + 1) * W + xx] > 60) dn++;
-        if (dn - up + 1 > yb - ya + 1 + 6) continue;
-        for (let y = ya; y <= yb; y++) A[y * W + xx] = 0;
+      cx.push((s0 + s1) / 2); cy.push(best);
+    }
+    const coarse = xx => { let j = 0; while (j < cx.length - 2 && xx > cx[j + 1]) j++;
+      if (cx.length < 2) return xx * t + mid + cy[0];
+      const k = Math.max(0, Math.min(1, (xx - cx[j]) / (cx[j + 1] - cx[j]))); return xx * t + mid + cy[j] * (1 - k) + cy[j + 1] * k; };
+    // 2. sample the line only where it is a clean, thin run (no stroke crossing), then fit a smooth curve
+    const sx = [], sy = [], sw = [];
+    for (let xx = 0; xx < W; xx += 3) {
+      const e = coarse(xx); let bestY = -1, bestD = 1e9, bestW = 0;
+      for (let y = Math.max(1, Math.round(e - R)); y <= Math.min(H - 2, Math.round(e + R)); y++) {
+        if (A[y * W + xx] <= 60 || A[(y - 1) * W + xx] > 60) continue; // top of a run
+        let y2 = y; while (y2 < H - 1 && A[(y2 + 1) * W + xx] > 60) y2++;
+        if (y2 - y + 1 > 12) { y = y2; continue; }
+        const c = (y + y2) / 2, dd = Math.abs(c - e); if (dd < bestD) { bestD = dd; bestY = c; bestW = y2 - y + 1; } y = y2;
+      }
+      if (bestY >= 0) { sx.push(xx); sy.push(bestY); sw.push(bestW); }
+    }
+    // the line's real thickness here (lines nearer the camera look thicker)
+    if (sw.length) { const ws = [...sw].sort((a, b) => a - b); th = Math.max(th, ws[ws.length >> 1]); }
+    pad = Math.max(2, Math.round(th * .4) + 1);
+    const px = [], py = [];
+    for (let i = 0; i < sx.length; i++) if (sw[i] <= th + 2) { px.push(sx[i]); py.push(sy[i]); }
+    let fit = null;
+    if (px.length > 12) {
+      let keep = px.map(() => true);
+      for (let it = 0; it < 3; it++) {
+        // least squares y = a + b u + c u^2, u = x / W
+        let S = [0, 0, 0, 0, 0], T = [0, 0, 0];
+        for (let i = 0; i < px.length; i++) if (keep[i]) { const u = px[i] / W, y = py[i]; let p = 1;
+          for (let k = 0; k < 5; k++) { S[k] += p; p *= u; } T[0] += y; T[1] += y * u; T[2] += y * u * u; }
+        const M = [[S[0], S[1], S[2]], [S[1], S[2], S[3]], [S[2], S[3], S[4]]], det = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+        const D = det(M); if (Math.abs(D) < 1e-12) break;
+        const col = (j) => M.map((r, i) => r.map((v, k) => k === j ? T[i] : v));
+        const f = [det(col(0)) / D, det(col(1)) / D, det(col(2)) / D];
+        fit = xx => { const u = xx / W; return f[0] + f[1] * u + f[2] * u * u; };
+        for (let i = 0; i < px.length; i++) keep[i] = Math.abs(py[i] - fit(px[i])) < 2.5;
       }
     }
+    const yArr = new Float32Array(W);
+    for (let xx = 0; xx < W; xx++) {
+      const e = fit ? fit(xx) : coarse(xx);
+      // tiny local re-centre (±1px) onto the ink
+      let bd = 0, bsum = -1;
+      for (let d = -1; d <= 1; d++) { let sum = 0; for (let q = -1; q <= 1; q++) { const y = Math.round(e + d + q); if (y >= 0 && y < H) sum += A[y * W + xx]; } if (sum > bsum) { bsum = sum; bd = d; } }
+      const yc = e + bd; yArr[xx] = yc;
+      const ya = Math.max(0, Math.floor(yc - th / 2) - pad), yb = Math.min(H - 1, Math.ceil(yc + th / 2) + pad);
+      if (ya > yb) continue;
+      let up = ya, dn = yb;
+      while (up > 0 && A[(up - 1) * W + xx] > 60) up--;
+      while (dn < H - 1 && A[(dn + 1) * W + xx] > 60) dn++;
+      if (dn - up + 1 > yb - ya + 1 + 6) continue; // a stroke crosses the line here: keep it
+      for (let y = ya; y <= yb; y++) A[y * W + xx] = 0;
+    }
+    tracks.push({ yArr, band: th / 2 + pad + 3, th });
+  }
+  // 3. sweep thin, flat leftovers that sit on a line
+  const n = W * H, lab = new Int32Array(n), q = new Int32Array(n);
+  for (let s = 0; s < n; s++) if (A[s] > 40 && !lab[s]) {
+    let hd = 0, tl = 0, x0 = W, x1 = 0, y0 = H, y1 = 0; q[tl++] = s; lab[s] = 1;
+    while (hd < tl) { const i = q[hd++], xx = i % W, y = (i / W) | 0;
+      if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = xx + dx, Y = y + dy;
+        if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const j = Y * W + X; if (A[j] > 40 && !lab[j]) { lab[j] = 1; q[tl++] = j; } } }
+    const h = y1 - y0 + 1, w = x1 - x0 + 1, xm = (x0 + x1) >> 1, ym = (y0 + y1) / 2;
+    if (w < h * 3 || h > 14) continue;
+    if (tracks.some(tr => Math.abs(tr.yArr[xm] - ym) <= tr.band && y0 >= tr.yArr[x0] - tr.band - 1 && y1 <= tr.yArr[x1] + tr.band + 1))
+      for (let k = 0; k < tl; k++) A[q[k]] = 0;
   }
 }
 
@@ -508,13 +597,13 @@ $('#goalForm').onsubmit=async e=>{e.preventDefault();try{await api('/admin/setti
 
 /* pieces */
 let PIECES=[];
-async function loadPieces(){PIECES=(await api('/admin/pieces')).pieces;renderPieces()}
+async function loadPieces(){PIECES=(await api('/admin/pieces')).pieces;renderPieces();renderTags()}
 function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.length?PIECES.length+(PIECES.length===1?' piece':' pieces'):'';
  if(!PIECES.length){l.innerHTML='<div class="empty">Nothing yet. Add your first piece above.</div>';return}
  l.replaceChildren(...PIECES.map(p=>{const d=document.createElement('div');d.className='pc'+(p.published?'':' off');
   d.innerHTML='<div class="th"><img alt="" loading="lazy"></div><div><h3></h3><small></small></div><div class="acts"><button class="pill soft sm" data-a="live" type="button"></button><button class="pill soft sm" data-a="edit" type="button">Edit</button><button class="pill danger sm" data-a="del" type="button">Delete</button></div>';
   d.querySelector('img').src=p.img;d.querySelector('h3').innerHTML=esc(p.name)+'<span class="chip'+(p.published?' live':'')+'">'+(p.published?'Listed':'Delisted')+'</span>';
-  d.querySelector('small').textContent=CATN[p.cat]+' · '+p.tag+' · '+naira(p.price)+' · '+p.sold+' sold';
+  d.querySelector('small').textContent=CATN[p.cat]+' · '+(p.tag||'random')+' · '+naira(p.price)+' · '+p.sold+' sold';
   const lb=d.querySelector('[data-a=live]');lb.textContent=p.published?'Delist':'List again';
   lb.onclick=()=>patch(p,{published:!p.published},p.published?'Delisted. Buyers can’t see or buy it':'Listed again');
   d.querySelector('[data-a=edit]').onclick=()=>editForm(d,p);
@@ -524,54 +613,109 @@ function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.leng
   return d}))}
 async function patch(p,body,msg){try{const r=await api('/admin/pieces?id='+p.id,{method:'PATCH',body:JSON.stringify(body)});Object.assign(p,r.piece);renderPieces();toast(msg||'Saved');loadStats()}catch(e){toast(e.message)}}
 function editForm(card,p){if(card.querySelector('form'))return card.querySelector('form').remove();const f=document.createElement('form');
- f.innerHTML='<div class="field"><label class="l">Name</label><input class="inp" name="name" maxlength="80"></div><div class="field"><label class="l">Description</label><textarea class="inp" name="description" maxlength="600" rows="3"></textarea></div><div class="row"><div class="field"><label class="l">Section</label><select class="inp" name="cat">'+Object.entries(CATN).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></div><div class="field"><label class="l">Filter tag</label><select class="inp" name="tag"><option>people</option><option>things</option><option>anime</option><option>random</option></select></div></div><div class="row"><div class="field"><label class="l">Price in naira</label><input class="inp" name="price" inputmode="numeric"></div><div class="field"><label class="l">Kind</label><select class="inp" name="kind"><option value="drawing">Drawing (line art)</option><option value="photo">Photo or colour</option></select></div></div><div style="display:flex;gap:8px"><button class="pill sm" type="submit">Save</button><button class="pill soft sm" type="button" data-x>Cancel</button></div>';
+ f.innerHTML='<div class="field"><label class="l">Name</label><input class="inp" name="name" maxlength="80"></div><div class="field"><label class="l">Description</label><textarea class="inp" name="description" maxlength="600" rows="3"></textarea></div><div class="row"><div class="field"><label class="l">Section</label><select class="inp" name="cat">'+Object.entries(CATN).map(([k,n])=>'<option value="'+k+'">'+n+'</option>').join('')+'</select></div><div class="field"><label class="l">Filter tag</label><input class="inp" name="tag" list="tagList" maxlength="24" autocomplete="off"></div></div><div class="row"><div class="field"><label class="l">Price in naira</label><input class="inp" name="price" inputmode="numeric"></div><div class="field"><label class="l">Kind</label><select class="inp" name="kind"><option value="drawing">Drawing (line art)</option><option value="photo">Photo or colour</option></select></div></div><div style="display:flex;gap:8px"><button class="pill sm" type="submit">Save</button><button class="pill soft sm" type="button" data-x>Cancel</button></div>';
  for(const k of ['name','description','cat','tag','price','kind'])f.elements[k].value=p[k]??'';
  f.querySelector('[data-x]').onclick=()=>f.remove();
- f.onsubmit=e=>{e.preventDefault();patch(p,{name:f.elements.name.value,description:f.elements.description.value,cat:f.elements.cat.value,tag:f.elements.tag.value,price:+f.elements.price.value.replace(/\D/g,''),kind:f.elements.kind.value})};
+ f.onsubmit=e=>{e.preventDefault();patch(p,{name:f.elements.name.value,description:f.elements.description.value,cat:f.elements.cat.value,tag:cleanTag(f.elements.tag.value),price:+f.elements.price.value.replace(/\D/g,''),kind:f.elements.kind.value})};
  card.append(f);f.elements.name.focus()}
 
-/* add a piece: clean it with the Sketch Studio engine, then upload a small public preview and the full private original */
-const U={file:null,kind:'drawing',out:null,auto:null,busy:false};
-const HINTS={drawing:'Cleaned into line art on a clear background. Buyers can put it on paper or in a frame.',photo:'Colour touched up. Buyers can frame it.',asis:'Uploaded exactly as it is, for digital art. Buyers can frame it.'};
+/* filter tags: type your own; every tag you've used is remembered and offered again */
+const DEFAULT_TAGS=['people','things','anime','random'];
+const cleanTag=v=>String(v||'').toLowerCase().replace(/[^a-z0-9 &'-]+/g,' ').replace(/\s+/g,' ').trim().slice(0,24);
+const tagStore={get(){try{return JSON.parse(localStorage.getItem('ar-tags')||'[]')}catch(e){return[]}},add(t){if(!t)return;try{const l=new Set(this.get());l.add(t);localStorage.setItem('ar-tags',JSON.stringify([...l]))}catch(e){}}};
+function allTags(){return [...new Set([...PIECES.map(p=>p.tag).filter(Boolean),...tagStore.get(),...DEFAULT_TAGS])]}
+function renderTags(){const tags=allTags(),cur=cleanTag($('#pTag').value);
+ $('#tagList').replaceChildren(...tags.map(t=>{const o=document.createElement('option');o.value=t;return o}));
+ $('#tagChips').replaceChildren(...tags.map(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',t===cur);b.onclick=()=>{$('#pTag').value=t;renderTags()};return b}))}
+$('#pTag').addEventListener('input',renderTags);
+
+/* add a piece: clean it with the Sketch Studio engine, tidy it with the eraser, then upload a small public preview and the full private original */
+const U={file:null,kind:'drawing',base:null,out:null,strokes:[],busy:false,tool:'move',v:{s:1,x:0,y:0}};
+const HINTS={drawing:'Cleaned into line art on a clear background. Use Erase to wipe anything that isn’t the drawing.',photo:'Colour touched up. Buyers can frame it.',asis:'Uploaded exactly as it is, for digital art.'};
+const MAX=2200;
 function shrinkTo(c,m){const s=Math.min(1,m/Math.max(c.width,c.height));if(s===1)return c;const r=document.createElement('canvas');r.width=Math.round(c.width*s);r.height=Math.round(c.height*s);const x=r.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(c,0,0,r.width,r.height);return r}
-async function prep(){if(!U.file)return;const drop=$('#drop');let b=drop.querySelector('.busy');if(!b){b=document.createElement('div');b.className='busy';drop.append(b)}b.textContent='Working on it…';U.busy=true;syncAdd();
- await new Promise(r=>setTimeout(r,30));
- try{if(U.kind==='asis'){const bm=await createImageBitmap(U.file),c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;c.getContext('2d').drawImage(bm,0,0);U.out=c}
-  else{const r=await digitise(U.file,{force:U.kind,cleanup:+$('#clean').value,rules:$('#rules').checked});U.out=r.canvas}
-  let cv=drop.querySelector('canvas');if(!cv){cv=document.createElement('canvas');drop.append(cv)}const v=shrinkTo(U.out,900);cv.width=v.width;cv.height=v.height;cv.getContext('2d').drawImage(v,0,0);
-  drop.classList.add('has');$('#dropTxt').hidden=true}
- catch(e){$('#addErr').textContent='Couldn’t read that image. Try a JPG or PNG.'}
- b.remove();U.busy=false;syncAdd()}
-function setKind(k){U.kind=k;$$('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));$('#kindHint').textContent=HINTS[k];$('#tuneRow').hidden=$('#rulesRow').hidden=k!=='drawing'}
-$$('.seg button').forEach(b=>b.onclick=()=>{if(U.kind!==b.dataset.k){setKind(b.dataset.k);prep()}});
-{let t;$('#clean').oninput=e=>{$('#cleanV').textContent=e.target.value;clearTimeout(t);t=setTimeout(prep,350)}}
+const vp=$('#vp');
+function busy(on,txt){let b=vp.querySelector('.busy');if(on){if(!b){b=document.createElement('div');b.className='busy';vp.append(b)}b.textContent=txt||'Working on it…'}else if(b)b.remove();U.busy=on;syncAdd()}
+function view(){if(!U.out)return;const {s,x,y}=U.v;U.out.style.transform='translate('+x+'px,'+y+'px) scale('+s+')'}
+function fit(){if(!U.out)return;const W=vp.clientWidth,H=vp.clientHeight,s=Math.min(W/U.out.width,H/U.out.height)*.94;U.v={s,x:(W-U.out.width*s)/2,y:(H-U.out.height*s)/2};U.fitS=s;view()}
+function zoomAt(f,cx,cy){const v=U.v,ns=Math.max(U.fitS*.5,Math.min(U.fitS*14,v.s*f)),k=ns/v.s;U.v={s:ns,x:cx-(cx-v.x)*k,y:cy-(cy-v.y)*k};view();$('#zHint').hidden=true}
+$('#zIn').onclick=()=>zoomAt(1.5,vp.clientWidth/2,vp.clientHeight/2);
+$('#zOut').onclick=()=>zoomAt(1/1.5,vp.clientWidth/2,vp.clientHeight/2);
+$('#zFit').onclick=fit;
+vp.addEventListener('wheel',e=>{e.preventDefault();const r=vp.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+function setTool(t){U.tool=t;$$('.tools2 button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));vp.classList.toggle('erase',t==='erase');$('#brushRow').hidden=t!=='erase';$('#ring').hidden=true}
+$$('.tools2 button').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
+// eraser strokes are kept (in 0..1 units) so they can be undone, and re-applied if you change the clean-up settings
+function stroke(x,s){x.save();x.globalCompositeOperation='destination-out';x.lineCap=x.lineJoin='round';x.strokeStyle='#000';x.lineWidth=s.w*U.out.width;x.beginPath();
+ s.p.forEach(([px,py],i)=>{const X=px*U.out.width,Y=py*U.out.width;i?x.lineTo(X,Y):x.moveTo(X,Y)});if(s.p.length===1){const [px,py]=s.p[0];x.lineTo(px*U.out.width+.01,py*U.out.width)}x.stroke();x.restore()}
+function redraw(){const x=U.out.getContext('2d');x.clearRect(0,0,U.out.width,U.out.height);x.drawImage(U.base,0,0);U.strokes.forEach(s=>stroke(x,s));syncEd()}
+function syncEd(){$('#edUndo').disabled=$('#edClear').disabled=!U.strokes.length}
+$('#edUndo').onclick=()=>{U.strokes.pop();redraw()};
+$('#edClear').onclick=()=>{U.strokes=[];redraw()};
+{const P=new Map();let pinch=null,cur=null,pan=null;
+ const local=e=>{const r=vp.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+ const toArt=([X,Y])=>[(X-U.v.x)/U.v.s/U.out.width,(Y-U.v.y)/U.v.s/U.out.width];
+ const ring=(pt)=>{const g=$('#ring'),d=+$('#brush').value;if(U.tool!=='erase'||!pt){g.hidden=true;return}g.hidden=false;g.style.width=g.style.height=d+'px';g.style.left=pt[0]+'px';g.style.top=pt[1]+'px'};
+ vp.addEventListener('pointerdown',e=>{if(!U.out||U.busy)return;$('#zHint').hidden=true;vp.setPointerCapture(e.pointerId);const pt=local(e);P.set(e.pointerId,pt);
+  if(P.size===2){if(cur){U.strokes.pop();redraw();cur=null}const [a,b]=[...P.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),c:[(a[0]+b[0])/2,(a[1]+b[1])/2]};pan=null;ring(null);return}
+  if(U.tool==='erase'&&U.kind==='drawing'){cur={w:+$('#brush').value/U.v.s/U.out.width,p:[toArt(pt)]};U.strokes.push(cur);stroke(U.out.getContext('2d'),{w:cur.w,p:cur.p});syncEd();ring(pt)}
+  else pan={pt,x:U.v.x,y:U.v.y}});
+ vp.addEventListener('pointermove',e=>{const pt=local(e);if(!P.has(e.pointerId)){if(e.pointerType==='mouse')ring(pt);return}P.set(e.pointerId,pt);
+  if(pinch&&P.size===2){const [a,b]=[...P.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),c=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+   U.v.x+=c[0]-pinch.c[0];U.v.y+=c[1]-pinch.c[1];zoomAt(d/pinch.d,c[0],c[1]);pinch={d,c};return}
+  if(cur){const q=toArt(pt),l=cur.p[cur.p.length-1];cur.p.push(q);stroke(U.out.getContext('2d'),{w:cur.w,p:[l,q]});ring(pt)}
+  else if(pan){U.v.x=pan.x+pt[0]-pan.pt[0];U.v.y=pan.y+pt[1]-pan.pt[1];view()}});
+ const up=e=>{P.delete(e.pointerId);if(P.size<2)pinch=null;if(!P.size){cur=null;pan=null;if(e.pointerType!=='mouse')ring(null)}};
+ vp.addEventListener('pointerup',up);vp.addEventListener('pointercancel',up);vp.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')ring(null)})}
+new ResizeObserver(()=>{if(U.out&&U.fitS&&Math.abs(U.v.s-U.fitS)<1e-6)fit()}).observe(vp);
+
+async function prep(){if(!U.file)return;busy(true);await new Promise(r=>setTimeout(r,30));
+ try{let c;
+  if(U.kind==='asis'){const bm=await createImageBitmap(U.file);c=shrinkTo((()=>{const k=document.createElement('canvas');k.width=bm.width;k.height=bm.height;k.getContext('2d').drawImage(bm,0,0);return k})(),4000)}
+  else c=(await digitise(U.file,{force:U.kind,maxSize:MAX,cleanup:+$('#clean').value,rules:$('#rules').checked})).canvas;
+  const keepView=U.out&&U.out.width===c.width&&U.out.height===c.height;
+  U.base=c;const o=document.createElement('canvas');o.width=c.width;o.height=c.height;
+  if(U.out)U.out.remove();U.out=o;vp.prepend(o);redraw();if(keepView)view();else fit();
+  $('#drop').hidden=true;$('#ed').hidden=false;$('#addErr').textContent=''}
+ catch(e){console.error(e);$('#addErr').textContent='Couldn’t process that image'+(e&&e.message?' ('+e.message+')':'')+'. Try a smaller JPG or PNG.'}
+ busy(false)}
+function setKind(k){U.kind=k;$$('#kindSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));$('#kindHint').textContent=HINTS[k];$('#tuneRow').hidden=$('#rulesRow').hidden=k!=='drawing';
+ $('#eraseBtn').hidden=k!=='drawing';if(k!=='drawing'){U.strokes=[];setTool('move')}}
+$$('#kindSeg button').forEach(b=>b.onclick=()=>{if(U.kind!==b.dataset.k){setKind(b.dataset.k);prep()}});
+{let t;$('#clean').oninput=e=>{$('#cleanV').textContent=e.target.value;clearTimeout(t);t=setTimeout(prep,400)}}
 $('#rules').onchange=prep;
-$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;U.file=f;$('#addErr').textContent='';
+$('#changeImg').onclick=()=>{$('#file').value='';$('#file').click()};
+$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;U.file=f;U.strokes=[];$('#addErr').textContent='';
  if(!$('#pName').value)$('#pName').value=f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).slice(0,80);
- $('#tools').hidden=false;
- // let the engine guess drawing vs photo first
+ $('#tools').hidden=false;$('#ed').hidden=false;$('#drop').hidden=true;$('#zHint').hidden=false;busy(true,'Looking at it…');
  try{const r=await digitise(f,{maxSize:700});setKind(r.kind)}catch(err){setKind('photo')}
- if(!$('#drop .again')){const a=document.createElement('button');a.type='button';a.className='pill soft sm again glass';a.textContent='Change image';a.onclick=()=>{$('#file').value='';$('#file').click()};$('#drop').append(a)}
- prep()};
+ setTool('move');prep()};
 $('#pPrice').oninput=e=>e.target.value=e.target.value.replace(/\D/g,'');
 $('#pName').oninput=syncAdd;
 function syncAdd(){$('#addBtn').disabled=U.busy||!U.out||!$('#pName').value.trim()}
 async function putFile(url,blob){const fd=new FormData();fd.append('cacheControl','31536000');fd.append('',blob);
  const r=await fetch(url,{method:'PUT',body:fd,headers:{'x-upsert':'false'}});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error('Upload failed: '+(d.message||d.error||r.status))}}
+// trims the empty, erased space around a drawing so the file is just the art
+function trim(c){const x=c.getContext('2d'),{width:W,height:H}=c,d=x.getImageData(0,0,W,H).data;let x0=W,y0=H,x1=-1,y1=-1;
+ for(let y=0;y<H;y++)for(let i=y*W*4+3,xx=0;xx<W;xx++,i+=4)if(d[i]>8){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(y<y0)y0=y;if(y>y1)y1=y}
+ if(x1<0)return c;const p=Math.round(Math.max(W,H)*.02);x0=Math.max(0,x0-p);y0=Math.max(0,y0-p);x1=Math.min(W-1,x1+p);y1=Math.min(H-1,y1+p);
+ if(x0===0&&y0===0&&x1===W-1&&y1===H-1)return c;const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;o.getContext('2d').drawImage(c,-x0,-y0);return o}
 const extOf=b=>({'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[b.type]||'png');
 $('#addForm').onsubmit=async e=>{e.preventDefault();if($('#addBtn').disabled)return;const btn=$('#addBtn'),err=$('#addErr');err.textContent='';
- const name=$('#pName').value.trim(),price=+$('#pPrice').value||1000;if(price<100){err.textContent='Price must be from ₦100';return}
+ const name=$('#pName').value.trim(),price=+$('#pPrice').value||1000,tag=cleanTag($('#pTag').value)||'random';if(price<100){err.textContent='Price must be from ₦100';return}
  btn.disabled=true;btn.textContent='Preparing…';
  try{const kind=U.kind==='drawing'?'drawing':'photo';
-  const original=U.kind==='asis'&&/^image\/(png|jpeg|webp)$/.test(U.file.type)?U.file:await toBlob(U.out,kind==='drawing'?'image/png':'image/jpeg',.93);
-  const preview=await toBlob(shrinkTo(U.out,800),'image/webp',.82);
+  const raw=U.kind==='asis'&&/^image\/(png|jpeg|webp)$/.test(U.file.type)&&U.file.size<15e6;
+  const art=kind==='drawing'?trim(U.out):U.out;
+  const original=raw?U.file:await toBlob(art,kind==='drawing'?'image/png':'image/jpeg',.93);
+  const preview=await toBlob(shrinkTo(art,800),'image/webp',.82);
   const up=await api('/admin/upload-url',{method:'POST',body:JSON.stringify({ext:extOf(original),previewExt:extOf(preview)})});
   btn.textContent='Uploading…';await Promise.all([putFile(up.preview.url,preview),putFile(up.original.url,original)]);
   btn.textContent='Saving…';
-  const r=await api('/admin/pieces',{method:'POST',body:JSON.stringify({name,description:$('#pDesc').value.trim(),cat:$('#pCat').value,tag:$('#pTag').value,kind,price,published:$('#pLive').checked,preview_path:up.preview.path,original_path:up.original.path})});
-  toast(name+(r.piece.published?' is live':' is saved (delisted)'));resetAdd();loadPieces();loadStats()}
+  const r=await api('/admin/pieces',{method:'POST',body:JSON.stringify({name,description:$('#pDesc').value.trim(),cat:$('#pCat').value,tag,kind,price,published:$('#pLive').checked,preview_path:up.preview.path,original_path:up.original.path})});
+  tagStore.add(tag);toast(name+(r.piece.published?' is live':' is saved (delisted)'));resetAdd();loadPieces();loadStats()}
  catch(x){err.textContent=x.message}finally{btn.textContent='Upload piece';syncAdd()}};
-function resetAdd(){U.file=null;U.out=null;$('#file').value='';const d=$('#drop');d.classList.remove('has');d.querySelectorAll('canvas,.again').forEach(n=>n.remove());$('#dropTxt').hidden=false;$('#tools').hidden=true;$('#pName').value='';$('#pDesc').value='';syncAdd()}
+function resetAdd(){U.file=null;if(U.out)U.out.remove();U.out=U.base=null;U.strokes=[];$('#file').value='';$('#drop').hidden=false;$('#ed').hidden=true;$('#tools').hidden=true;$('#pName').value='';$('#pDesc').value='';$('#pTag').value='';renderTags();syncEd();syncAdd()}
 
 async function loadAll(){try{await Promise.all([loadStats(),loadPieces()])}catch(e){toast(e.message)}}
 $('#refresh').onclick=()=>loadAll().then(()=>toast('Up to date'));

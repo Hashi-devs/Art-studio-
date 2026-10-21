@@ -3,7 +3,8 @@ const { send, fail, only, handle, readJson } = require('../../lib/http');
 const { db, storage, adminUser } = require('../../lib/supabase');
 
 const CATS = ['arts', 'illustrations', 'stories', 'photos'];
-const TAGS = ['people', 'things', 'anime', 'random'];
+// Filter tags are whatever you type: lower case, letters, numbers, spaces, & ' -
+const cleanTag = v => String(v || '').toLowerCase().replace(/[^a-z0-9 &'-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24);
 const KINDS = ['drawing', 'photo'];
 const idOf = req => String((req.query && req.query.id) || new URL(req.url, 'http://x').searchParams.get('id') || '');
 const validId = id => /^[0-9a-f-]{36}$/i.test(id);
@@ -14,7 +15,7 @@ function clean(body, partial) {
   const out = {};
   if (!partial || 'name' in body) { const n = String(body.name || '').trim().slice(0, 80); if (!n) throw Object.assign(new Error('Give the piece a name'), { status: 400 }); out.name = n; }
   if ('cat' in body || !partial) { if (!CATS.includes(body.cat)) throw Object.assign(new Error('Pick a section'), { status: 400 }); out.cat = body.cat; }
-  if ('tag' in body || !partial) { out.tag = TAGS.includes(body.tag) ? body.tag : 'random'; }
+  if ('tag' in body || !partial) { out.tag = cleanTag(body.tag) || 'random'; }
   if ('kind' in body || !partial) { out.kind = KINDS.includes(body.kind) ? body.kind : 'drawing'; }
   if ('price' in body || !partial) { const p = Math.round(Number(body.price ?? 1000)); if (!(p >= 100 && p <= 1000000)) throw Object.assign(new Error('Price must be from ₦100'), { status: 400 }); out.price = p; }
   if ('description' in body || !partial) out.description = String(body.description || '').trim().slice(0, 600) || null;

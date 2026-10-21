@@ -132,6 +132,12 @@ test('admin sets the goal', async () => {
   await call('/api/admin/settings', { method: 'PATCH', headers: A(), body: JSON.stringify({ goal: 650000 }) });
   assert.equal((await call('/api/site')).body.goal, 650000);
 });
+test('filter tags can be anything the admin types', async () => {
+  await call('/api/admin/pieces?id=' + piece.id, { method: 'PATCH', headers: A(), body: JSON.stringify({ tag: '  Lagos  Nights!! ' }) });
+  assert.equal((await call('/api/site')).body.pieces[0].tag, 'lagos nights');
+  await call('/api/admin/pieces?id=' + piece.id, { method: 'PATCH', headers: A(), body: JSON.stringify({ tag: '' }) });
+  assert.equal((await call('/api/site')).body.pieces[0].tag, 'random');
+});
 test('admin hides, edits and deletes a piece', async () => {
   await call('/api/admin/pieces?id=' + piece.id, { method: 'PATCH', headers: A(), body: JSON.stringify({ published: false, price: 2000, preview_path: 'hack' }) });
   assert.equal((await call('/api/site')).body.pieces.length, 0);

@@ -179,24 +179,84 @@ function removeRules(A, W, H) {
   if (lines.length < 3) return;
   const gap = lines.length > 1 ? Math.min(...lines.map(l => Math.min(...lines.filter(m => m !== l).map(m => Math.abs(m.yc - l.yc))))) : 40;
   const R = Math.max(3, Math.min(14, Math.round(gap * .25))), SEG = Math.max(40, Math.round(W / 12));
+  const tracks = [];
   for (const { t, g0, g1 } of lines) {
-    const th = g1 - g0 + 1, pad = Math.max(3, Math.round(th * .5) + 2);
+    const mid = (g0 + g1) / 2;
+    let th = g1 - g0 + 1, pad = 2;
+    // 1. coarse offset per segment
+    const cx = [], cy = [];
     for (let s0 = 0; s0 < W; s0 += SEG) {
-      const s1 = Math.min(W, s0 + SEG);
-      let best = 0, bs = -1;
+      const s1 = Math.min(W, s0 + SEG); let best = 0, bs = -1;
       for (let dy = -R; dy <= R; dy++) { let sum = 0;
-        for (let xx = s0; xx < s1; xx += 2) { const yc = Math.round(xx * t + (g0 + g1) / 2) + dy; if (yc >= 0 && yc < H) sum += A[yc * W + xx]; }
+        for (let xx = s0; xx < s1; xx += 2) { const yc = Math.round(xx * t + mid) + dy; if (yc >= 0 && yc < H) sum += A[yc * W + xx]; }
         if (sum > bs) { bs = sum; best = dy; } }
-      for (let xx = s0; xx < s1; xx++) {
-        const ya = Math.max(0, Math.floor(xx * t + g0) + best - pad), yb = Math.min(H - 1, Math.ceil(xx * t + g1) + best + pad);
-        if (ya > yb) continue;
-        let up = ya, dn = yb;
-        while (up > 0 && A[(up - 1) * W + xx] > 60) up--;
-        while (dn < H - 1 && A[(dn + 1) * W + xx] > 60) dn++;
-        if (dn - up + 1 > yb - ya + 1 + 6) continue;
-        for (let y = ya; y <= yb; y++) A[y * W + xx] = 0;
+      cx.push((s0 + s1) / 2); cy.push(best);
+    }
+    const coarse = xx => { let j = 0; while (j < cx.length - 2 && xx > cx[j + 1]) j++;
+      if (cx.length < 2) return xx * t + mid + cy[0];
+      const k = Math.max(0, Math.min(1, (xx - cx[j]) / (cx[j + 1] - cx[j]))); return xx * t + mid + cy[j] * (1 - k) + cy[j + 1] * k; };
+    // 2. sample the line only where it is a clean, thin run (no stroke crossing), then fit a smooth curve
+    const sx = [], sy = [], sw = [];
+    for (let xx = 0; xx < W; xx += 3) {
+      const e = coarse(xx); let bestY = -1, bestD = 1e9, bestW = 0;
+      for (let y = Math.max(1, Math.round(e - R)); y <= Math.min(H - 2, Math.round(e + R)); y++) {
+        if (A[y * W + xx] <= 60 || A[(y - 1) * W + xx] > 60) continue; // top of a run
+        let y2 = y; while (y2 < H - 1 && A[(y2 + 1) * W + xx] > 60) y2++;
+        if (y2 - y + 1 > 12) { y = y2; continue; }
+        const c = (y + y2) / 2, dd = Math.abs(c - e); if (dd < bestD) { bestD = dd; bestY = c; bestW = y2 - y + 1; } y = y2;
+      }
+      if (bestY >= 0) { sx.push(xx); sy.push(bestY); sw.push(bestW); }
+    }
+    // the line's real thickness here (lines nearer the camera look thicker)
+    if (sw.length) { const ws = [...sw].sort((a, b) => a - b); th = Math.max(th, ws[ws.length >> 1]); }
+    pad = Math.max(2, Math.round(th * .4) + 1);
+    const px = [], py = [];
+    for (let i = 0; i < sx.length; i++) if (sw[i] <= th + 2) { px.push(sx[i]); py.push(sy[i]); }
+    let fit = null;
+    if (px.length > 12) {
+      let keep = px.map(() => true);
+      for (let it = 0; it < 3; it++) {
+        // least squares y = a + b u + c u^2, u = x / W
+        let S = [0, 0, 0, 0, 0], T = [0, 0, 0];
+        for (let i = 0; i < px.length; i++) if (keep[i]) { const u = px[i] / W, y = py[i]; let p = 1;
+          for (let k = 0; k < 5; k++) { S[k] += p; p *= u; } T[0] += y; T[1] += y * u; T[2] += y * u * u; }
+        const M = [[S[0], S[1], S[2]], [S[1], S[2], S[3]], [S[2], S[3], S[4]]], det = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+        const D = det(M); if (Math.abs(D) < 1e-12) break;
+        const col = (j) => M.map((r, i) => r.map((v, k) => k === j ? T[i] : v));
+        const f = [det(col(0)) / D, det(col(1)) / D, det(col(2)) / D];
+        fit = xx => { const u = xx / W; return f[0] + f[1] * u + f[2] * u * u; };
+        for (let i = 0; i < px.length; i++) keep[i] = Math.abs(py[i] - fit(px[i])) < 2.5;
       }
     }
+    const yArr = new Float32Array(W);
+    for (let xx = 0; xx < W; xx++) {
+      const e = fit ? fit(xx) : coarse(xx);
+      // tiny local re-centre (±1px) onto the ink
+      let bd = 0, bsum = -1;
+      for (let d = -1; d <= 1; d++) { let sum = 0; for (let q = -1; q <= 1; q++) { const y = Math.round(e + d + q); if (y >= 0 && y < H) sum += A[y * W + xx]; } if (sum > bsum) { bsum = sum; bd = d; } }
+      const yc = e + bd; yArr[xx] = yc;
+      const ya = Math.max(0, Math.floor(yc - th / 2) - pad), yb = Math.min(H - 1, Math.ceil(yc + th / 2) + pad);
+      if (ya > yb) continue;
+      let up = ya, dn = yb;
+      while (up > 0 && A[(up - 1) * W + xx] > 60) up--;
+      while (dn < H - 1 && A[(dn + 1) * W + xx] > 60) dn++;
+      if (dn - up + 1 > yb - ya + 1 + 6) continue; // a stroke crosses the line here: keep it
+      for (let y = ya; y <= yb; y++) A[y * W + xx] = 0;
+    }
+    tracks.push({ yArr, band: th / 2 + pad + 3, th });
+  }
+  // 3. sweep thin, flat leftovers that sit on a line
+  const n = W * H, lab = new Int32Array(n), q = new Int32Array(n);
+  for (let s = 0; s < n; s++) if (A[s] > 40 && !lab[s]) {
+    let hd = 0, tl = 0, x0 = W, x1 = 0, y0 = H, y1 = 0; q[tl++] = s; lab[s] = 1;
+    while (hd < tl) { const i = q[hd++], xx = i % W, y = (i / W) | 0;
+      if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = xx + dx, Y = y + dy;
+        if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const j = Y * W + X; if (A[j] > 40 && !lab[j]) { lab[j] = 1; q[tl++] = j; } } }
+    const h = y1 - y0 + 1, w = x1 - x0 + 1, xm = (x0 + x1) >> 1, ym = (y0 + y1) / 2;
+    if (w < h * 3 || h > 14) continue;
+    if (tracks.some(tr => Math.abs(tr.yArr[xm] - ym) <= tr.band && y0 >= tr.yArr[x0] - tr.band - 1 && y1 <= tr.yArr[x1] + tr.band + 1))
+      for (let k = 0; k < tl; k++) A[q[k]] = 0;
   }
 }
 

@@ -57,3 +57,4 @@ alter table public.orders add column if not exists buyer_name text;
 alter table public.orders add column if not exists extra integer not null default 0;
 alter table public.orders add column if not exists on_wall boolean not null default true;
 alter table public.orders add column if not exists wall_ok boolean not null default true;   -- the buyer's own choice
+alter table public.pieces drop constraint if exists pieces_tag_check;

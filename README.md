@@ -68,6 +68,7 @@ in Supabase or Paystack and update it in Vercel.
 ## Updates to run in Supabase
 If your database was set up before an update, paste these files into **SQL Editor → New query → Run** (each is safe to run twice):
 - `supabase/002_thanks.sql`: piece descriptions, buyer names, extra amounts and the Thank-yous wall.
+- `supabase/003_tags.sql`: lets filter tags be anything you type.
 
 ## Changing things
 - **Goal**: tap **Edit** on the Goal tile in /admin.
