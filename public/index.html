@@ -95,6 +95,9 @@ section{padding:56px 0}
 .lap{width:clamp(110px,26vw,190px);margin-bottom:-6px}
 .float{display:block;animation:float 3.6s ease-in-out infinite}.float.f2{animation-duration:4.4s;animation-delay:-1.2s}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.lap{border:0;background:none;padding:0;cursor:pointer;color:inherit;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}.lap:active{transform:scale(.95)}
+.lapPhoto{border-radius:20px;overflow:hidden;background:#fff;border:1px solid var(--line);margin-top:6px}.lapPhoto img{width:100%;aspect-ratio:4/3;object-fit:contain;display:block}
+.specs{margin:16px 0 4px;display:grid;gap:0}.specs div{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--line)}.specs div:last-child{border-bottom:0}.specs dt{color:var(--mut);font-size:14px}.specs dd{margin:0;text-align:right;font-size:15px}.specs .main dd{font-weight:600}
 .lap img{width:100%;filter:drop-shadow(0 12px 18px rgba(0,0,0,.18))}
 .ends{display:flex;justify-content:space-between;margin:10px 18px 0 34px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
@@ -314,7 +317,7 @@ textarea.inp{min-height:110px;resize:vertical}
      <button class="me" id="me" type="button" aria-describedby="tip"><span class="float"><img id="avatar" alt="Me"><svg class="arrow" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M1.5 1.5h13L8 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><span class="hint">Tap me</span><span class="tip glass" id="tip" role="tooltip"><small>Amount raised</small><b id="tipAmt">₦0.00</b><em id="tipThought"></em></span></button>
      <div class="ends"><span>Me</span><span>Goal</span></div>
     </div>
-    <div class="lap"><span class="float f2"><img id="lapImg" alt="Dell Latitude 7420 2-in-1"></span></div>
+    <button class="lap" id="lapBtn" type="button" aria-label="See the laptop and its specs"><span class="float f2"><img id="lapImg" alt="Dell Latitude 7420 2-in-1"></span></button>
    </div>
    <p class="lapname">Dell Latitude 7420 2-in-1</p>
   </div>
@@ -464,6 +467,13 @@ textarea.inp{min-height:110px;resize:vertical}
  <div class="bar2"><button class="ibtn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
  <div class="thead"><p class="eyebrow">With gratitude</p><h2 id="thT">Thank-yous</h2><p>Everyone who’s helped me get closer to the laptop. Tap a name.</p></div>
  <div class="names" id="names"></div>
+</div></div>
+
+<div class="ov" id="lapPop" role="dialog" aria-modal="true" aria-labelledby="lpT"><div class="sheet">
+ <div class="shtop"><h2 id="lpT">The goal</h2><button class="ibtn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="lapPhoto"><img id="lpImg" alt="Dell Latitude 7420 2-in-1"></div>
+ <h3 style="font-size:24px;margin-top:14px">Dell Latitude 7420 2-in-1</h3>
+ <dl class="specs"><div class="main"><dt>Storage</dt><dd>512 GB SSD</dd></div><div class="main"><dt>Memory</dt><dd>8 GB RAM</dd></div><div class="main"><dt>Processor</dt><dd>Intel Core i5, 10th Gen</dd></div><div class="main"><dt>Design</dt><dd>2-in-1, folds back into a tablet</dd></div><div class=""><dt>Screen</dt><dd>14″ Full HD touchscreen</dd></div><div class=""><dt>Pen</dt><dd>Stylus support</dd></div><div class=""><dt>Ports</dt><dd>USB-C Thunderbolt 4, USB-A, HDMI</dd></div><div class=""><dt>Weight</dt><dd>About 1.4 kg</dd></div><div class=""><dt>System</dt><dd>Windows Pro</dd></div></dl>
 </div></div>
 
 <div class="ov" id="who" role="dialog" aria-modal="true" aria-labelledby="wName"><div class="sheet">
@@ -824,7 +834,7 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const naira=(n,d=2)=>'₦'+n.toLocaleString('en-NG',{minimumFractionDigits:d,maximumFractionDigits:d});
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 $('#yr').textContent=new Date().getFullYear();
-$('#avatar').src=A.avatar;$$('img[data-lg]').forEach(i=>i.src=A['lg_'+i.dataset.lg]);$('#lapImg').src=A.laptop;
+$('#avatar').src=A.avatar;$$('img[data-lg]').forEach(i=>i.src=A['lg_'+i.dataset.lg]);$('#lapImg').src=A.laptop;$('#lpImg').src=A.lap1;$('#lapBtn').onclick=()=>openOv('lapPop');
 
 /* soft click sound, made in the browser (no files) */
 let ac=null;
