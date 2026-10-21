@@ -1,6 +1,6 @@
 {
   // Cloudflare Workers config. Cloudflare reads this when it builds the site from GitHub.
-  "name": "ar-studio",
+  "name": "art-studio",
   "main": "src/worker.js",
   "compatibility_date": "2026-06-01",
   "assets": {

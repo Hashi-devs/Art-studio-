@@ -35,7 +35,7 @@ Prices always come from the database, so nobody can change what they pay from th
 1. Make a free account at **dash.cloudflare.com/sign-up** and verify your email. Skip adding a domain.
 2. Open **Compute (Workers)** (or **Workers & Pages**) → **Create** → **Import a repository**.
 3. Connect **GitHub**, allow access to **Art-studio-**, and pick it.
-4. Project name `ar-studio`. Leave the build command empty. Deploy command: `npx wrangler deploy`. Tap **Deploy**.
+4. Project name `art-studio`. Leave the build command empty. Deploy command: `npx wrangler deploy`. Tap **Deploy**.
 5. When it finishes, open the project → **Settings** → **Variables and Secrets** and add these six
    (choose **Secret** for the two keys):
 
