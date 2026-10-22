@@ -98,6 +98,16 @@ main{padding:22px 0 60px}
 .tune{display:flex;align-items:center;gap:10px;margin:12px 0 0;font-size:14px}.tune input{flex:1;accent-color:var(--ink)}
 .check{display:flex;align-items:center;gap:10px;margin:0 0 16px;cursor:pointer}.check input{width:20px;height:20px;accent-color:var(--ink)}
 .again{position:absolute;top:10px;right:10px;z-index:2}
+/* menu */
+#menuBtn{position:relative;margin-left:-8px}#menuBtn .dot{position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.ascrim{position:fixed;inset:0;z-index:18;background:var(--scrim)}
+.amenu{position:fixed;top:70px;left:12px;z-index:19;width:min(330px,calc(100% - 24px));border-radius:20px;padding:8px;display:grid;gap:2px;background:var(--surf)}
+.amenu a{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:13px 14px;border-radius:14px;text-decoration:none;color:var(--ink)}
+.amenu a span{font:400 22px/1.1 "IM Fell English",Georgia,serif}.amenu a small{width:100%;color:var(--mut);font-size:13px;margin-top:-6px}
+.amenu a b{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surf2);color:var(--mut)}.amenu a b.hot{background:var(--bad);color:#fff}.amenu a b:empty{display:none}
+.amenu a[aria-current=page]{background:var(--surf2)}
+.view .sec{margin:0 0 14px}
+#v-pieces,#v-messages,#v-orders{max-width:760px}
 /* a box you drag and resize (crop, and the drawing area on a mockup) */
 .cbox{position:absolute;z-index:4;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 0 9999px rgba(10,15,32,.45);touch-action:none;cursor:move}
 .cbox i{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
@@ -153,10 +163,18 @@ main{padding:22px 0 60px}
 </style></head><body>
 
 <header class="top"><div class="wrap">
+ <button class="ibtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="amenu" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><i class="dot" id="menuDot" hidden></i></button>
  <a class="logo" href="/" aria-label="AR Studios, back to the site"><span class="wm" aria-hidden="true">AR Studios</span><span>Admin</span></a>
  <button class="ibtn" id="themeBtn" type="button" aria-label="Switch theme"></button>
  <button class="pill soft sm" id="outBtn" type="button" hidden>Log out</button>
 </div></header>
+<div class="ascrim" id="ascrim" hidden></div>
+<nav class="amenu glass" id="amenu" aria-label="Sections" hidden>
+ <a href="#home" data-v="home"><span>Your studio</span><small>Add pieces, backgrounds, best sellers</small></a>
+ <a href="#pieces" data-v="pieces"><span>Your pieces</span><b id="mPieces"></b></a>
+ <a href="#messages" data-v="messages"><span>Messages</span><b id="mMsgs"></b></a>
+ <a href="#orders" data-v="orders"><span>Orders</span><b id="mOrders"></b></a>
+</nav>
 
 <section class="login" id="login" hidden><div class="card">
  <p class="eyebrow">AR Studio</p><h1>Welcome back</h1>
@@ -170,7 +188,8 @@ main{padding:22px 0 60px}
 </div></section>
 
 <main id="app" hidden><div class="wrap">
- <div class="hello"><div><p class="eyebrow" id="today"></p><h1>Your studio</h1></div><button class="pill soft sm" id="refresh" type="button">Refresh</button></div>
+ <div class="hello"><div><p class="eyebrow" id="today"></p><h1 id="viewT">Your studio</h1></div><button class="pill soft sm" id="refresh" type="button">Refresh</button></div>
+ <div class="view" id="v-home">
  <div class="tiles">
   <div class="card tile"><p class="eyebrow">Raised</p><b id="sRaised">–</b><small id="sPct">&nbsp;</small></div>
   <div class="card tile"><div class="eb"><p class="eyebrow">Goal</p><button class="edit" id="goalEdit" type="button">Edit</button></div><b id="sGoal">–</b>
@@ -180,9 +199,8 @@ main{padding:22px 0 60px}
   <div class="card tile"><p class="eyebrow">Donations</p><b id="sDon">–</b><small id="sDonN">&nbsp;</small></div>
  </div>
  <div class="bar" role="progressbar" aria-label="Progress to the goal" aria-valuemin="0" aria-valuemax="100"><i id="sBar" style="width:0"></i></div>
-
- <div class="grid2">
-  <div>
+  <div class="grid2">
+   <div>
    <section class="card sec" aria-labelledby="addH">
     <h2 id="addH">Add a piece</h2>
     <div class="drop" id="drop"><input type="file" id="file" accept="image/*" aria-label="Choose an image"><div id="dropTxt"><b>Tap to choose an image</b><br><span class="mut">A photo of a drawing, a digital illustration or a photo</span></div></div>
@@ -219,7 +237,9 @@ main{padding:22px 0 60px}
      <p class="err" id="addErr" role="alert"></p>
     </form>
    </section>
-
+   </div>
+   <div>
+   <section class="card sec" aria-labelledby="topH"><div class="h"><h2 id="topH">Best sellers</h2><span class="mut">Top 10</span></div><ol class="top5" id="top5"></ol></section>
    <section class="card sec" aria-labelledby="bgH">
     <div class="h"><h2 id="bgH">Backgrounds &amp; mockups</h2><span class="mut" id="bgN"></span></div>
     <p class="hint" style="margin:-6px 0 14px">What buyers can put a drawing on before they download it. Clear is always there too.</p>
@@ -235,18 +255,20 @@ main{padding:22px 0 60px}
      <p class="err" id="bgErr" role="alert"></p>
     </form>
    </section>
-
+   </div>
+  </div>
+ </div>
+ <div class="view" id="v-pieces" hidden>
    <section class="card sec" aria-labelledby="piecesH">
     <div class="h"><h2 id="piecesH">Your pieces</h2><span class="mut" id="pCount"></span></div>
     <div class="plist" id="plist"><div class="empty">Loading…</div></div>
    </section>
-  </div>
-
-  <div>
+ </div>
+ <div class="view" id="v-messages" hidden>
    <section class="card sec" aria-labelledby="msgH"><div class="h"><h2 id="msgH">Messages</h2><span class="mut" id="msgN"></span></div><div class="olist" id="mlist"><div class="empty">No messages yet. When someone is interested in a game or tool, it shows up here.</div></div></section>
-   <section class="card sec" aria-labelledby="topH"><h2 id="topH">Best sellers</h2><ol class="top5" id="top5"></ol></section>
+ </div>
+ <div class="view" id="v-orders" hidden>
    <section class="card sec" aria-labelledby="ordH"><div class="h"><h2 id="ordH">Recent orders</h2><span class="mut" id="pendN"></span></div><div class="olist" id="olist"></div></section>
-  </div>
  </div>
 </div></main>
 
@@ -762,14 +784,14 @@ async function api(path,opts={},retry=true){
  if(r.status===401&&retry&&SES){SES.exp=0;try{return await api(path,opts,false)}catch(e){logout('Please log in again');throw e}}
  if(r.status===403){logout(d.error);throw new Error(d.error)}
  if(!r.ok||d.ok===false)throw new Error(d.error||'Something went wrong');return d}
-function logout(msg){SES=null;store.set(null);$('#app').hidden=true;$('#outBtn').hidden=true;$('#login').hidden=false;$('#loginErr').textContent=msg||''}
+function logout(msg){SES=null;store.set(null);$('#app').hidden=true;$('#outBtn').hidden=true;$('#menuBtn').hidden=true;menu(false);$('#login').hidden=false;$('#loginErr').textContent=msg||''}
 $('#outBtn').onclick=()=>logout();
 $('#loginForm').onsubmit=async e=>{e.preventDefault();const b=$('#loginBtn'),em=$('#lEmail').value.trim(),pw=$('#lPass').value;
  if(!em||!pw){$('#loginErr').textContent='Enter your email and password';return}
  b.disabled=true;b.textContent='Logging in…';$('#loginErr').textContent='';
  try{SES=await auth('password',{email:em,password:pw});store.set(SES);$('#lPass').value='';await enter()}
  catch(err){$('#loginErr').textContent=err.message}finally{b.disabled=false;b.textContent='Log in'}};
-async function enter(){$('#login').hidden=true;$('#app').hidden=false;$('#outBtn').hidden=false;await loadAll()}
+async function enter(){$('#login').hidden=true;$('#app').hidden=false;$('#outBtn').hidden=false;$('#menuBtn').hidden=false;go(location.hash.slice(1));await loadAll()}
 
 /* dashboard */
 async function loadStats(){const s=await api('/admin/stats'),pct=s.goal?Math.min(100,s.raised/s.goal*100):0;
@@ -779,7 +801,7 @@ async function loadStats(){const s=await api('/admin/stats'),pct=s.goal?Math.min
  $('#sDon').textContent=naira(s.donated);$('#sDonN').textContent=s.donations+(s.donations===1?' donation':' donations')+' recently';
  $('#sBar').style.width=Math.max(pct,1)+'%';$('#sBar').parentNode.setAttribute('aria-valuenow',pct.toFixed(1));
  $('#top5').innerHTML=s.top.length?s.top.map(t=>'<li><span>'+esc(t.name)+'</span><b>'+t.sold+' sold</b></li>').join(''):'<li class="mut none">No sales yet</li>';
- $('#pendN').textContent=s.pending?s.pending+' waiting':'';
+ $('#pendN').textContent=s.pending?s.pending+' waiting':'';BADGE.pend=s.pending;badges();
  const when=d=>new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
  const ol=$('#olist');if(!s.recent.length){ol.innerHTML='<div class="empty">No orders yet. Share the site!</div>';return}
  ol.replaceChildren(...s.recent.map(o=>{const d=document.createElement('div');d.className='o';
@@ -796,7 +818,7 @@ $('#goalForm').onsubmit=async e=>{e.preventDefault();try{await api('/admin/setti
 
 /* pieces */
 let PIECES=[];
-async function loadPieces(){PIECES=(await api('/admin/pieces')).pieces;renderPieces();renderTags()}
+async function loadPieces(){PIECES=(await api('/admin/pieces')).pieces;renderPieces();renderTags();badges()}
 function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.length?PIECES.length+(PIECES.length===1?' piece':' pieces'):'';
  if(!PIECES.length){l.innerHTML='<div class="empty">Nothing yet. Add your first piece above.</div>';return}
  l.replaceChildren(...PIECES.map(p=>{const d=document.createElement('div');d.className='pc'+(p.published?'':' off');
@@ -945,7 +967,7 @@ $('#addForm').onsubmit=async e=>{e.preventDefault();if($('#addBtn').disabled)ret
 function resetAdd(){U.file=null;U.crop=null;setTool('move');if(U.out)U.out.remove();U.out=U.base=null;U.strokes=[];$('#file').value='';$('#drop').hidden=false;$('#ed').hidden=true;$('#tools').hidden=true;$('#pName').value='';$('#pDesc').value='';$('#pLink').value='';$('#pTag').value='';renderTags();syncEd();syncAdd()}
 
 async function loadMessages(){const l=$('#mlist'),ms=(await api('/admin/enquiries')).enquiries,fresh=ms.filter(m=>m.status==='new').length;
- $('#msgN').textContent=fresh?fresh+' new':'';if(!ms.length)return;
+ $('#msgN').textContent=fresh?fresh+' new':'';BADGE.msgs=fresh;badges();if(!ms.length)return;
  const when=d=>new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
  l.replaceChildren(...ms.map(m=>{const d=document.createElement('div');d.className='o';
   d.innerHTML='<b></b><span class="st"></span><small></small><small></small><div class="note"></div>';
@@ -999,6 +1021,21 @@ function renderBgs(){const l=$('#blist');$('#bgN').textContent=BGS.length?BGS.le
 
 async function loadAll(){try{await Promise.all([loadStats(),loadPieces(),loadMessages(),loadBgs()])}catch(e){toast(e.message)}}
 $('#refresh').onclick=()=>loadAll().then(()=>toast('Up to date'));
+
+/* sections: Your studio (home), pieces, messages and orders, each on its own screen */
+const VIEWS={home:'Your studio',pieces:'Your pieces',messages:'Messages',orders:'Orders'};
+function menu(open){const m=$('#amenu');m.hidden=$('#ascrim').hidden=!open;$('#menuBtn').setAttribute('aria-expanded',open)}
+function go(v,push){if(!VIEWS[v])v='home';Object.keys(VIEWS).forEach(k=>$('#v-'+k).hidden=k!==v);$('#viewT').textContent=VIEWS[v];
+ a11yCur(v);menu(false);scrollTo(0,0);
+ if(push&&location.hash!=='#'+v)history.pushState(null,'','#'+v)}
+const a11yCur=v=>$$('#amenu a').forEach(a=>a.dataset.v===v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
+$('#menuBtn').onclick=()=>menu($('#amenu').hidden);$('#ascrim').onclick=()=>menu(false);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')menu(false)});
+$$('#amenu a').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.dataset.v,true)});
+addEventListener('popstate',()=>go(location.hash.slice(1)));
+function badges(){const set=(id,txt,hot)=>{const b=$(id);b.textContent=txt||'';b.classList.toggle('hot',!!hot)};
+ set('#mPieces',PIECES.length||'');set('#mMsgs',BADGE.msgs?BADGE.msgs+' new':'',BADGE.msgs);set('#mOrders',BADGE.pend?BADGE.pend+' waiting':'');$('#menuDot').hidden=!BADGE.msgs}
+const BADGE={msgs:0,pend:0};
 
 /* start */
 (async()=>{

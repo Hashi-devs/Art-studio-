@@ -179,7 +179,7 @@ async function stats({ request, sb, ord }) {
   ]);
   const counts = {};
   paidPieces.forEach(o => { const k = o.piece_name || 'Removed piece'; counts[k] = (counts[k] || 0) + 1; });
-  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, sold]) => ({ name, sold }));
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, sold]) => ({ name, sold }));
   return json(200, {
     ok: true, ...t,
     pieces: pieces.length, live: pieces.filter(p => p.published).length,
