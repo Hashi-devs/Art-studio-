@@ -115,14 +115,14 @@ main{padding:22px 0 60px}
 .cropbar{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
 /* backgrounds */
 .blist{display:grid;gap:10px}
-.bgr{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--bg)}
+.bgr{display:grid;grid-template-columns:56px minmax(0,1fr);gap:8px 12px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--bg)}
 .bgr .th{width:56px;height:56px;border-radius:10px;overflow:hidden;background:#fff}.bgr .th img{width:100%;height:100%;object-fit:cover}
 .bgr h3{font-size:18px;line-height:1.15;overflow-wrap:anywhere}.bgr small{color:var(--mut)}
-.bgr .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:end}
+.bgr .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;justify-content:start}.bgr .acts .danger{margin-left:auto}
 .bgr .acts .ib{min-width:34px;height:34px;padding:0 10px}
 .mk{position:relative;border-radius:14px;overflow:hidden;background:var(--surf2);margin-top:10px;user-select:none;-webkit-user-select:none}
 .mk img{width:100%;display:block;pointer-events:none}
-@media(max-width:480px){.bgr{grid-template-columns:48px 1fr}.bgr .th{width:48px;height:48px}.bgr .acts{grid-column:1/-1;justify-content:start}}
+
 
 /* pieces */
 .plist{display:grid;gap:10px}
@@ -239,7 +239,7 @@ main{padding:22px 0 60px}
    </section>
    </div>
    <div>
-   <section class="card sec" aria-labelledby="topH"><div class="h"><h2 id="topH">Best sellers</h2><span class="mut">Top 10</span></div><ol class="top5" id="top5"></ol></section>
+
    <section class="card sec" aria-labelledby="bgH">
     <div class="h"><h2 id="bgH">Backgrounds &amp; mockups</h2><span class="mut" id="bgN"></span></div>
     <p class="hint" style="margin:-6px 0 14px">What buyers can put a drawing on before they download it. Clear is always there too.</p>
@@ -257,6 +257,7 @@ main{padding:22px 0 60px}
    </section>
    </div>
   </div>
+  <section class="card sec" aria-labelledby="topH"><div class="h"><h2 id="topH">Best sellers</h2><span class="mut">Top 10</span></div><ol class="top5" id="top5"></ol></section>
  </div>
  <div class="view" id="v-pieces" hidden>
    <section class="card sec" aria-labelledby="piecesH">
