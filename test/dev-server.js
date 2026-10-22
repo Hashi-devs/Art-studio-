@@ -20,7 +20,9 @@ const ENV = {
 };
 
 /* ---------- in-memory database ---------- */
-export const DB = { pieces: [], orders: [], enquiries: [], settings: [{ id: 1, goal: 500000, updated_at: new Date().toISOString() }] };
+export const DB = { pieces: [], orders: [], enquiries: [], settings: [{ id: 1, goal: 500000, updated_at: new Date().toISOString() }],
+  backgrounds: [['White', 'paper', '/assets/bg/white.jpg', null, 1], ['Grey', 'paper', '/assets/bg/grey.jpg', null, 2], ['Brown', 'paper', '/assets/bg/brown.jpg', null, 3], ['Binder', 'mockup', '/assets/bg/binder.jpg', { x: .162, y: .113, w: .838, h: .785 }, 4]]
+    .map(([name, type, path, area, sort]) => ({ id: crypto.randomUUID(), name, type, path, area, sort, created_at: new Date().toISOString() })) };
 export const FILES = {}; // "bucket/path" -> {type, buf}
 const USERS = { 'admin@test.dev': 'testpass', 'other@test.dev': 'otherpass' };
 const TOKENS = {};
@@ -28,6 +30,7 @@ export const TX = {};
 export const EMAILS = []; // paystack transactions by reference
 const DEFAULTS = {
   pieces: () => ({ id: crypto.randomUUID(), description: null, link: null, cat: 'arts', tag: 'random', kind: 'drawing', price: 1000, published: true, created_at: new Date().toISOString() }),
+  backgrounds: () => ({ id: crypto.randomUUID(), area: null, sort: 0, created_at: new Date().toISOString() }),
   enquiries: () => ({ id: crypto.randomUUID(), status: 'new', budget: null, created_at: new Date().toISOString() }),
   orders: () => ({ id: crypto.randomUUID(), status: 'pending', downloads: 0, note: null, buyer_name: null, extra: 0, on_wall: true, wall_ok: true, piece_id: null, piece_name: null, created_at: new Date().toISOString(), paid_at: null }),
 };

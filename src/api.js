@@ -4,30 +4,43 @@ import { json, fail, err, readJson, need, isEmail, randomHex } from './lib/http.
 const REF = /^[a-z]{2}_[a-z0-9_]{6,40}$/i;
 const UUID = /^[0-9a-f-]{36}$/i;
 const MAX_DOWNLOADS = 10;
-const CATS = ['arts', 'illustrations', 'stories', 'photos', 'games', 'tools'];
+const CATS = ['arts', 'sketches', 'illustrations', 'stories', 'photos', 'games', 'tools'];
 // Games and tools aren't bought at a fixed price: people send their interest instead.
 const TALK = ['games', 'tools'];
 
 /* A preview path starting with / is a file on the site itself (used for Sketch Studio's card). */
 const previewUrl = (sb, path) => String(path || '').startsWith('/') ? path : sb.storage.publicUrl('previews', path);
 const cleanLink = v => { const u = String(v || '').trim().slice(0, 300); if (!u) return null; if (!/^https?:\/\/[^\s]+\.[^\s]+$/i.test(u)) throw err(400, 'The preview link should start with https://'); return u; };
-const KINDS = ['drawing', 'photo'];
+const KINDS = ['drawing', 'colour', 'photo'];
 // Filter tags are whatever the admin types: lower case, letters, numbers, spaces, & ' -
 const cleanTag = v => String(v || '').toLowerCase().replace(/[^a-z0-9 &'-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24);
 const validPath = p => typeof p === 'string' && /^[a-z0-9][a-z0-9._/-]{3,200}$/i.test(p) && !p.includes('..');
 const siteUrl = env => need(env, 'SITE_URL').replace(/\/+$/, '');
 const PUBLIC_CACHE = { 'Cache-Control': 'public, max-age=0, s-maxage=30, stale-while-revalidate=120' };
 
+const bgOut = sb => b => ({ id: b.id, name: b.name, type: b.type, area: b.area || null, img: previewUrl(sb, b.path), sort: b.sort });
+// A mockup's art area: fractions of the image, inside it, not too small.
+function cleanArea(a) {
+  const v = ['x', 'y', 'w', 'h'].map(k => Number(a && a[k]));
+  if (v.some(n => !Number.isFinite(n))) throw err(400, 'Mark where the drawing goes on the mockup');
+  let [x, y, w, h] = v.map(n => Math.max(0, Math.min(1, n)));
+  w = Math.min(w, 1 - x); h = Math.min(h, 1 - y);
+  if (w < .05 || h < .05) throw err(400, 'Make the drawing area a bit bigger');
+  const r = n => Math.round(n * 1000) / 1000;
+  return { x: r(x), y: r(y), w: r(w), h: r(h) };
+}
+
 /* ---------- public ---------- */
 
 // Everything the public page needs: listed pieces, goal and total raised.
 async function site({ sb, ord }) {
-  const [rows, t] = await Promise.all([
+  const [rows, t, bgs] = await Promise.all([
     sb.db.select('pieces', 'published=eq.true&select=id,name,cat,tag,kind,price,description,link,preview_path,created_at&order=created_at.desc'),
     ord.totals(),
+    sb.db.select('backgrounds', 'select=id,name,type,path,area&order=sort.asc,created_at.asc').catch(() => null),
   ]);
   const pieces = rows.map(p => ({ id: p.id, name: p.name, cat: p.cat, tag: p.tag, kind: p.kind, price: p.price, description: p.description || '', link: p.link || null, talk: TALK.includes(p.cat), date: p.created_at, img: previewUrl(sb, p.preview_path) }));
-  return json(200, { ok: true, pieces, goal: t.goal, raised: t.raised, sold: t.sold }, PUBLIC_CACHE);
+  return json(200, { ok: true, pieces, goal: t.goal, raised: t.raised, sold: t.sold, backgrounds: bgs && bgs.map(bgOut(sb)) }, PUBLIC_CACHE);
 }
 
 // Public values the admin page needs to log in. The publishable (anon) key is meant to be public.
@@ -230,6 +243,44 @@ async function uploadUrl({ request, sb }) {
   return json(200, { ok: true, preview: { path: preview_path, url: previewUrl }, original: { path: original_path, url: originalUrl } });
 }
 
+// Download backgrounds and mockups: list (GET), add (POST), rename / move / re-mark (PATCH ?id=), remove (DELETE ?id=).
+async function backgrounds({ request, url, sb }) {
+  await sb.adminUser(request);
+  const m = request.method;
+  if (m === 'GET') return json(200, { ok: true, backgrounds: (await sb.db.select('backgrounds', 'select=*&order=sort.asc,created_at.asc')).map(bgOut(sb)) });
+  if (m === 'POST') {
+    const b = await readJson(request), name = String(b.name || '').trim().slice(0, 40), type = b.type === 'mockup' ? 'mockup' : 'paper';
+    if (!name) return fail(400, 'Give it a name');
+    if (!validPath(b.path) || !String(b.path).startsWith('bg/')) return fail(400, 'Upload the image first');
+    const all = await sb.db.select('backgrounds', 'select=sort&order=sort.desc&limit=1');
+    const row = await sb.db.insert('backgrounds', { name, type, path: b.path, area: type === 'mockup' ? cleanArea(b.area) : null, sort: (all[0] ? all[0].sort : 0) + 1 });
+    return json(201, { ok: true, background: bgOut(sb)(row) });
+  }
+  const id = url.searchParams.get('id') || '';
+  if (!UUID.test(id)) return fail(400, 'Missing background id');
+  if (m === 'PATCH') {
+    const b = await readJson(request), patch = {};
+    if ('name' in b) { const n = String(b.name || '').trim().slice(0, 40); if (!n) return fail(400, 'Give it a name'); patch.name = n; }
+    if ('area' in b) patch.area = cleanArea(b.area);
+    if ('sort' in b) { const s = Math.round(Number(b.sort)); if (!Number.isFinite(s)) return fail(400, 'Bad position'); patch.sort = s; }
+    const [row] = await sb.db.update('backgrounds', `id=eq.${id}`, patch);
+    return row ? json(200, { ok: true, background: bgOut(sb)(row) }) : fail(404, 'Background not found');
+  }
+  const [row] = await sb.db.remove('backgrounds', `id=eq.${id}`);
+  if (!row) return fail(404, 'Background not found');
+  if (!String(row.path).startsWith('/')) await Promise.allSettled([sb.storage.remove('previews', [row.path])]);
+  return json(200, { ok: true });
+}
+
+// One upload link for a new background image (public, in the previews bucket under bg/).
+async function bgUploadUrl({ request, sb }) {
+  await sb.adminUser(request);
+  const EXT = { png: 'png', jpg: 'jpg', jpeg: 'jpg', webp: 'webp' };
+  const ext = EXT[String((await readJson(request)).ext || 'jpg').toLowerCase()] || 'jpg';
+  const path = `bg/${randomHex(8)}.${ext}`;
+  return json(200, { ok: true, path, url: await sb.storage.signedUploadUrl('previews', path) });
+}
+
 // Read (GET) or change (PATCH {goal}) the laptop goal.
 async function settings({ request, sb }) {
   await sb.adminUser(request);
@@ -277,5 +328,7 @@ export const routes = {
   '/api/admin/pieces': { GET: pieces, POST: pieces, PATCH: pieces, DELETE: pieces },
   '/api/admin/upload-url': { POST: uploadUrl },
   '/api/admin/settings': { GET: settings, PATCH: settings },
+  '/api/admin/backgrounds': { GET: backgrounds, POST: backgrounds, PATCH: backgrounds, DELETE: backgrounds },
+  '/api/admin/bg-upload-url': { POST: bgUploadUrl },
   '/api/admin/orders': { PATCH: adminOrders },
 };

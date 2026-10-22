@@ -182,6 +182,27 @@ test('games and tools take interest messages instead of payment', async () => {
   assert(!JSON.stringify((await call('/api/site')).body).includes('studiox'), 'messages are never public');
   await call('/api/admin/pieces?id=' + g.id, { method: 'DELETE', headers: A() });
 });
+test('backgrounds: public list, admin add / mark / remove, and checks', async () => {
+  const pub = (await call('/api/site')).body.backgrounds;
+  assert.deepEqual(pub.map(b => b.name), ['White', 'Grey', 'Brown', 'Binder']); assert.equal(pub[0].img, '/assets/bg/white.jpg'); assert.equal(pub[3].area.x, .162);
+  assert.equal((await call('/api/admin/backgrounds', { method: 'POST', body: '{}' })).status, 401);
+  const up = (await call('/api/admin/bg-upload-url', { method: 'POST', headers: A(), body: JSON.stringify({ ext: 'png' }) })).body;
+  assert(up.path.startsWith('bg/') && up.path.endsWith('.png'));
+  assert.equal((await call('/api/admin/backgrounds', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Frame', type: 'mockup', path: up.path }) })).status, 400, 'a mockup needs its area');
+  assert.equal((await call('/api/admin/backgrounds', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Bad', type: 'paper', path: 'elsewhere/x.png' }) })).status, 400, 'only bg/ uploads');
+  const r = await call('/api/admin/backgrounds', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Frame', type: 'mockup', path: up.path, area: { x: .1, y: .2, w: 1.5, h: .5 } }) });
+  assert.equal(r.status, 201); assert.equal(r.body.background.area.w, .9, 'area is kept inside the image'); assert.equal(r.body.background.sort, 5);
+  const id = r.body.background.id;
+  assert.equal((await call('/api/admin/backgrounds?id=' + id, { method: 'PATCH', headers: A(), body: JSON.stringify({ name: 'Black frame', sort: 0 }) })).body.background.name, 'Black frame');
+  assert.equal((await call('/api/site')).body.backgrounds[0].name, 'Black frame');
+  assert.equal((await call('/api/admin/backgrounds?id=' + id, { method: 'DELETE', headers: A() })).status, 200);
+  assert.equal((await call('/api/site')).body.backgrounds.length, 4);
+});
+test('sketches section and coloured drawings are accepted', async () => {
+  const r = await call('/api/admin/pieces', { method: 'POST', headers: A(), body: JSON.stringify({ name: 'Study', cat: 'sketches', kind: 'colour', price: 500, preview_path: '2026-10/abcd1234.webp', original_path: '2026-10/abcd1234.png' }) });
+  assert.equal(r.status, 201); assert.equal(r.body.piece.cat, 'sketches'); assert.equal(r.body.piece.kind, 'colour');
+  await call('/api/admin/pieces?id=' + r.body.piece.id, { method: 'DELETE', headers: A() });
+});
 test('admin hides, edits and deletes a piece', async () => {
   await call('/api/admin/pieces?id=' + piece.id, { method: 'PATCH', headers: A(), body: JSON.stringify({ published: false, price: 2000, preview_path: 'hack' }) });
   assert.equal((await call('/api/site')).body.pieces.length, 0);

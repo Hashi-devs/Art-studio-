@@ -61,7 +61,7 @@ in Supabase or Paystack and update it in Cloudflare.
 3. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up".
 4. Copy the Project URL and keys from **Project Settings → API Keys**.
 
-Updates for an older database (each is safe to run twice): `supabase/002_thanks.sql`, `supabase/003_tags.sql`, `supabase/004_games_tools.sql`.
+Updates for an older database (each is safe to run twice): `supabase/002_thanks.sql`, `supabase/003_tags.sql`, `supabase/004_games_tools.sql`, `supabase/005_sketches_backgrounds.sql`.
 
 ## Emails when someone is interested in a game or tool (optional)
 
@@ -87,4 +87,6 @@ pretend Supabase and Paystack (admin login `admin@test.dev` / `testpass`).
 
 ## Changing things
 - **Goal, pieces, tags, descriptions, the Thank-yous wall**: all in /admin.
+- **Download backgrounds and mockups**: /admin → Backgrounds & mockups. Paper is laid under the whole drawing; for a mockup you drag a box over the spot the drawing goes. Clear is always offered.
+- **Line art or coloured**: when you add a drawing, Sketch Studio picks Line art or Coloured by itself; tap the other one to change it. Crop and Erase tidy anything left over.
 - **Text, plans, slideshow, social links**: `public/index.html`, the block marked `Edit these` near the top of the script.
