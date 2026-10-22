@@ -107,7 +107,10 @@ main{padding:22px 0 60px}
 .amenu a b{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surf2);color:var(--mut)}.amenu a b.hot{background:var(--bad);color:#fff}.amenu a b:empty{display:none}
 .amenu a[aria-current=page]{background:var(--surf2)}
 .view .sec{margin:0 0 14px}
-#v-pieces,#v-messages,#v-orders{max-width:760px}
+.pfil{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:8px;margin:0 0 10px}.pfil .inp{padding:10px 12px}
+.pchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}.pchips button{border:1px solid var(--line);background:var(--bg);border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer;color:var(--mut)}
+.pchips button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}.pchips button small{opacity:.7;margin-left:4px}
+@media(max-width:560px){.pfil{grid-template-columns:1fr 1fr}.pfil .q{grid-column:1/-1}}
 /* a box you drag and resize (crop, and the drawing area on a mockup) */
 .cbox{position:absolute;z-index:4;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 0 9999px rgba(10,15,32,.45);touch-action:none;cursor:move}
 .cbox i{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
@@ -262,6 +265,11 @@ main{padding:22px 0 60px}
  <div class="view" id="v-pieces" hidden>
    <section class="card sec" aria-labelledby="piecesH">
     <div class="h"><h2 id="piecesH">Your pieces</h2><span class="mut" id="pCount"></span></div>
+    <div class="pfil"><input class="inp q" id="fQ" type="search" placeholder="Search by name or tag" aria-label="Search pieces">
+     <select class="inp" id="fTag" aria-label="Filter tag"><option value="">All tags</option></select>
+     <select class="inp" id="fSort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="sold">Most sold</option><option value="name">A to Z</option></select></div>
+    <div class="pchips" id="fCat" role="group" aria-label="Section"></div>
+    <div class="pchips" id="fSt" role="group" aria-label="Status" style="margin-top:-6px"></div>
     <div class="plist" id="plist"><div class="empty">Loading…</div></div>
    </section>
  </div>
@@ -820,9 +828,21 @@ $('#goalForm').onsubmit=async e=>{e.preventDefault();try{await api('/admin/setti
 /* pieces */
 let PIECES=[];
 async function loadPieces(){PIECES=(await api('/admin/pieces')).pieces;renderPieces();renderTags();badges()}
-function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.length?PIECES.length+(PIECES.length===1?' piece':' pieces'):'';
- if(!PIECES.length){l.innerHTML='<div class="empty">Nothing yet. Add your first piece above.</div>';return}
- l.replaceChildren(...PIECES.map(p=>{const d=document.createElement('div');d.className='pc'+(p.published?'':' off');
+const PF={q:'',cat:'',st:'',tag:'',sort:'new'};
+function filterBar(){const cnt=f=>PIECES.filter(f).length;
+ const chips=(el,items,key)=>$(el).replaceChildren(...items.map(([k,n,c])=>{const b=document.createElement('button');b.type='button';b.innerHTML=esc(n)+(c!=null?'<small>'+c+'</small>':'');b.setAttribute('aria-pressed',PF[key]===k);b.onclick=()=>{PF[key]=k;renderPieces()};return b}));
+ chips('#fCat',[['','All',PIECES.length],...Object.entries(CATN).map(([k,n])=>[k,n,cnt(p=>p.cat===k)]).filter(x=>x[2])],'cat');
+ chips('#fSt',[['','Any status',null],['live','Listed',cnt(p=>p.published)],['off','Delisted',cnt(p=>!p.published)],['sold','Sold at least once',cnt(p=>p.sold>0)]],'st');
+ const tags=[...new Set(PIECES.map(p=>p.tag||'random'))].sort(),ft=$('#fTag');if(PF.tag&&!tags.includes(PF.tag))PF.tag='';
+ ft.replaceChildren(...[['','All tags'],...tags.map(x=>[x,x])].map(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;return o}));ft.value=PF.tag}
+$('#fQ').oninput=e=>{PF.q=e.target.value.trim().toLowerCase();renderPieces()};$('#fTag').onchange=e=>{PF.tag=e.target.value;renderPieces()};$('#fSort').onchange=e=>{PF.sort=e.target.value;renderPieces()};
+function renderPieces(){const l=$('#plist');$('#pCount').textContent=PIECES.length?PIECES.length+(PIECES.length===1?' piece':' pieces'):'';filterBar();
+ if(!PIECES.length){l.innerHTML='<div class="empty">Nothing yet. Add your first piece on Your studio.</div>';return}
+ let list=PIECES.filter(p=>(!PF.cat||p.cat===PF.cat)&&(!PF.tag||(p.tag||'random')===PF.tag)&&(!PF.st||(PF.st==='live'?p.published:PF.st==='off'?!p.published:p.sold>0))&&(!PF.q||(p.name+' '+(p.tag||'')).toLowerCase().includes(PF.q)));
+ const by={new:(a,b)=>b.created_at.localeCompare(a.created_at),old:(a,b)=>a.created_at.localeCompare(b.created_at),sold:(a,b)=>b.sold-a.sold,name:(a,b)=>a.name.localeCompare(b.name)}[PF.sort];list=[...list].sort(by);
+ if(list.length!==PIECES.length)$('#pCount').textContent=list.length+' of '+PIECES.length;
+ if(!list.length){l.innerHTML='<div class="empty">No pieces match. Try another section or clear the search.</div>';return}
+ l.replaceChildren(...list.map(p=>{const d=document.createElement('div');d.className='pc'+(p.published?'':' off');
   d.innerHTML='<div class="th"><img alt="" loading="lazy"></div><div><h3></h3><small></small></div><div class="acts"><button class="pill soft sm" data-a="live" type="button"></button><button class="pill soft sm" data-a="edit" type="button">Edit</button><button class="pill danger sm" data-a="del" type="button">Delete</button></div>';
   d.querySelector('img').src=p.img;d.querySelector('h3').innerHTML=esc(p.name)+'<span class="chip'+(p.published?' live':'')+'">'+(p.published?'Listed':'Delisted')+'</span>';
   d.querySelector('small').textContent=CATN[p.cat]+' · '+(p.tag||'random')+' · '+(TALK.includes(p.cat)?'by arrangement':naira(p.price)+' · '+p.sold+' sold');
