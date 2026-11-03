@@ -1061,8 +1061,10 @@ function initProgress(){const pct=Math.max(0,Math.min(100,RAISED/GOAL*100)),show
  const me=$('#me');me.onclick=()=>me.classList.toggle('open');document.addEventListener('click',e=>{if(!me.contains(e.target))me.classList.remove('open')})}
 
 /* gallery */
-let cat='all',tag='all';
-$('#tabs').replaceChildren(...[{k:'all',n:'All'},...CATS].map(c=>{const b=document.createElement('button');b.type='button';b.className='tab';b.setAttribute('role','tab');b.dataset.c=c.k;b.textContent=c.n;
+let cat='arts',tag='all';
+// the gallery shows only these sections (others stay in admin but aren't shown)
+const TABS=['arts','illustrations','stories','tools'];
+$('#tabs').replaceChildren(...CATS.filter(c=>TABS.includes(c.k)).map(c=>{const b=document.createElement('button');b.type='button';b.className='tab';b.setAttribute('role','tab');b.dataset.c=c.k;b.textContent=c.n;
  b.onclick=()=>{cat=c.k;mark();render()};return b}));
 const mark=()=>$$('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.c===cat));
 function buildTags(){$('#flist').replaceChildren(...TAGS.map(t=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.dataset.t=t.k;

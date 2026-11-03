@@ -31,4 +31,12 @@ export default {
       return fail(status, status === 500 ? 'Something went wrong' : e.message);
     }
   },
+
+  // Runs on a timer (see "triggers" in wrangler.jsonc). Supabase's free plan pauses a project after
+  // a week with no activity, so this asks the database one small question every two days.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(supabase(env).db.select('settings', 'id=eq.1&select=goal')
+      .then(() => console.log('Supabase kept awake'))
+      .catch(e => console.error('Keep-awake failed', e && e.message)));
+  },
 };
