@@ -463,7 +463,7 @@ async function digitise(source, { maxSize = 2800, cleanup = 8, darkness = 50, bo
     const dk = tot ? dark / tot : 1, wh = tot ? white / tot : 0;
     kind = P.area >= .18 && tot && (dk < .28 || (dk < .7 && wh > .3)) ? 'drawing' : 'photo';
   }
-  if (kind === 'photo') return { kind, canvas: polishPhoto(c) };
+  if (kind === 'photo') return { kind, canvas: polishPhoto(c), box: { x: 0, y: 0, W, H } };
 
   // 1. a first look at where the ink is, then a finer paper map that ignores it
   const lum0 = i => { const j = i * 4; return 1 - (.299 * d[j] / Math.max(bg[0][i], 1) + .587 * d[j + 1] / Math.max(bg[1][i], 1) + .114 * d[j + 2] / Math.max(bg[2][i], 1)); };
@@ -484,7 +484,7 @@ async function digitise(source, { maxSize = 2800, cleanup = 8, darkness = 50, bo
     const px = i % W, py = (i / W) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
     A[i] = lut[Math.round(.299 * R[i] + .587 * G[i] + .114 * Bl[i])];
   }
-  if (x1 <= x0 || y1 <= y0) return { kind, colour: false, canvas: c };
+  if (x1 <= x0 || y1 <= y0) return { kind, colour: false, canvas: c, box: { x: 0, y: 0, W, H } };
 
   // 3. notebook lines and margin lines
   // (found on a fixed-strength copy, so the clean-up slider can't hide the lines from the search;
@@ -494,10 +494,29 @@ async function digitise(source, { maxSize = 2800, cleanup = 8, darkness = 50, bo
     const D = new Uint8Array(N), lut0 = new Uint8Array(256), l0 = .08, h0 = .575;
     for (let v = 0; v < 256; v++) { let a = (1 - v / 255 - l0) / (h0 - l0); a = a < 0 ? 0 : a > 1 ? 1 : a; lut0[v] = Math.round(Math.pow(a, .85) * 255); }
     for (let i = 0; i < N; i++) if (inMask(i)) D[i] = lut0[Math.round(.299 * R[i] + .587 * G[i] + .114 * Bl[i])];
-    const before = D.slice();
-    lines = removeRules(D, W, H, R, G, Bl);
-    removeMargin(D, W, H, R, G, Bl);
-    erased = new Uint8Array(N); for (let i = 0; i < N; i++) if (before[i] && !D[i]) erased[i] = 1;
+    // the search is tuned for a page about 1400px across; bigger photos are searched at that size
+    // and the result scaled back up, so the result doesn't change with the photo's size
+    const sc = Math.min(1, 1400 / Math.max(W, H));
+    if (sc < 1) {
+      const w = Math.max(1, Math.round(W * sc)), h = Math.max(1, Math.round(H * sc)), n = w * h;
+      const sD = new Uint8Array(n), sR = new Uint8ClampedArray(n), sG = new Uint8ClampedArray(n), sB = new Uint8ClampedArray(n), cnt = new Uint16Array(n);
+      const aD = new Float32Array(n), aR = new Float32Array(n), aG = new Float32Array(n), aB = new Float32Array(n);
+      for (let y = 0; y < H; y++) { const yy = Math.min(h - 1, (y * sc) | 0); for (let x = 0; x < W; x++) { const k = yy * w + Math.min(w - 1, (x * sc) | 0), i = y * W + x;
+        aD[k] += D[i]; aR[k] += R[i]; aG[k] += G[i]; aB[k] += Bl[i]; cnt[k]++; } }
+      for (let k = 0; k < n; k++) { const c = cnt[k] || 1; sD[k] = aD[k] / c; sR[k] = aR[k] / c; sG[k] = aG[k] / c; sB[k] = aB[k] / c; }
+      const before = sD.slice();
+      lines = removeRules(sD, w, h, sR, sG, sB);
+      removeMargin(sD, w, h, sR, sG, sB);
+      if (lines.span) lines.span = [Math.floor(lines.span[0] / sc), Math.ceil(lines.span[1] / sc)];
+      erased = new Uint8Array(N);
+      for (let y = 0; y < H; y++) { const yy = Math.min(h - 1, (y * sc) | 0); for (let x = 0; x < W; x++) { const k = yy * w + Math.min(w - 1, (x * sc) | 0);
+        if (before[k] && !sD[k] && D[y * W + x]) erased[y * W + x] = 1; } }
+    } else {
+      const before = D.slice();
+      lines = removeRules(D, W, H, R, G, Bl);
+      removeMargin(D, W, H, R, G, Bl);
+      erased = new Uint8Array(N); for (let i = 0; i < N; i++) if (before[i] && !D[i]) erased[i] = 1;
+    }
     for (let i = 0; i < N; i++) if (erased[i]) A[i] = 0;
   }
 
@@ -543,7 +562,8 @@ async function digitise(source, { maxSize = 2800, cleanup = 8, darkness = 50, bo
   else { const mg = Math.round(Math.max(a1 - a0, b1 - b0) * .04); a0 = Math.max(x0, a0 - mg); b0 = Math.max(y0, b0 - mg); a1 = Math.min(x1, a1 + mg); b1 = Math.min(y1, b1 + mg); }
   const out = document.createElement('canvas'); out.width = a1 - a0 + 1; out.height = b1 - b0 + 1;
   out.getContext('2d').drawImage(c, a0, b0, out.width, out.height, 0, 0, out.width, out.height);
-  return { kind, colour: col, canvas: out };
+  // box: where the result sits in the (resized) photo, so edits can be kept in photo coordinates
+  return { kind, colour: col, canvas: out, box: { x: a0, y: b0, W, H } };
 }
 
 /* Near-level straight lines through the ink signal S (Hough), strongest first. */
@@ -911,7 +931,7 @@ function renderTags(){const tags=allTags(),cur=cleanTag($('#pTag').value);
 $('#pTag').addEventListener('input',renderTags);
 
 /* add a piece: clean it with the Sketch Studio engine, tidy it with the eraser, then upload a small public preview and the full private original */
-const U={file:null,kind:'drawing',base:null,out:null,strokes:[],busy:false,tool:'move',v:{s:1,x:0,y:0},crop:null};
+const U={file:null,kind:'drawing',base:null,out:null,strokes:[],busy:false,tool:'move',v:{s:1,x:0,y:0},crop:null,org:{x:0,y:0}};
 const ART_K=k=>k==='drawing'||k==='colour';
 const HINTS={drawing:'Cleaned into line art on a clear background. Use Crop and Erase to remove anything that isn’t the drawing.',colour:'The paper is taken away and the colours are kept. Use Crop and Erase to tidy it.',photo:'Colour touched up. Buyers can frame it.',asis:'Uploaded exactly as it is, for digital art.'};
 const MAX=2200;
@@ -928,20 +948,21 @@ vp.addEventListener('wheel',e=>{e.preventDefault();const r=vp.getBoundingClientR
 function setTool(t){U.tool=t;$$('.tools2 button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));vp.classList.toggle('erase',t==='erase');$('#brushRow').hidden=t!=='erase';$('#ring').hidden=true;
  $('#cropBar').hidden=t!=='crop';if(t==='crop'&&U.out){if(!CROP)CROP=box(vp,()=>({left:U.v.x,top:U.v.y,width:U.out.width*U.v.s,height:U.out.height*U.v.s}));CROP.set({x:0,y:0,w:1,h:1})}else if(CROP){CROP.remove();CROP=null}}
 $$('.tools2 button').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
-// eraser strokes are kept (in 0..1 units) so they can be undone, and re-applied if you change the clean-up settings
-function stroke(x,s){x.save();x.globalCompositeOperation='destination-out';x.lineCap=x.lineJoin='round';x.strokeStyle='#000';x.lineWidth=s.w*U.out.width;x.beginPath();
- s.p.forEach(([px,py],i)=>{const X=px*U.out.width,Y=py*U.out.width;i?x.lineTo(X,Y):x.moveTo(X,Y)});if(s.p.length===1){const [px,py]=s.p[0];x.lineTo(px*U.out.width+.01,py*U.out.width)}x.stroke();x.restore()}
+// eraser strokes are kept in the photo's own pixels, so they can be undone and stay put when you change
+// Clean-up, notebook lines or the type (the drawing's outline can move as it is redone)
+function stroke(x,s){x.save();x.globalCompositeOperation='destination-out';x.lineCap=x.lineJoin='round';x.strokeStyle='#000';x.lineWidth=s.w;x.beginPath();
+ s.p.forEach(([px,py],i)=>{const X=px-U.org.x,Y=py-U.org.y;i?x.lineTo(X,Y):x.moveTo(X,Y)});if(s.p.length===1){const [px,py]=s.p[0];x.lineTo(px-U.org.x+.01,py-U.org.y)}x.stroke();x.restore()}
 function redraw(){const x=U.out.getContext('2d');x.clearRect(0,0,U.out.width,U.out.height);x.drawImage(U.base,0,0);U.strokes.forEach(s=>stroke(x,s));syncEd()}
 function syncEd(){$('#edUndo').disabled=$('#edClear').disabled=!U.strokes.length}
 $('#edUndo').onclick=()=>{U.strokes.pop();redraw()};
 $('#edClear').onclick=()=>{U.strokes=[];redraw()};
 {const P=new Map();let pinch=null,cur=null,pan=null;
  const local=e=>{const r=vp.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
- const toArt=([X,Y])=>[(X-U.v.x)/U.v.s/U.out.width,(Y-U.v.y)/U.v.s/U.out.width];
+ const toArt=([X,Y])=>[(X-U.v.x)/U.v.s+U.org.x,(Y-U.v.y)/U.v.s+U.org.y];
  const ring=(pt)=>{const g=$('#ring'),d=+$('#brush').value;if(U.tool!=='erase'||!pt){g.hidden=true;return}g.hidden=false;g.style.width=g.style.height=d+'px';g.style.left=pt[0]+'px';g.style.top=pt[1]+'px'};
  vp.addEventListener('pointerdown',e=>{if(!U.out||U.busy)return;$('#zHint').hidden=true;vp.setPointerCapture(e.pointerId);const pt=local(e);P.set(e.pointerId,pt);
   if(P.size===2){if(cur){U.strokes.pop();redraw();cur=null}const [a,b]=[...P.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),c:[(a[0]+b[0])/2,(a[1]+b[1])/2]};pan=null;ring(null);return}
-  if(U.tool==='erase'&&ART_K(U.kind)){cur={w:+$('#brush').value/U.v.s/U.out.width,p:[toArt(pt)]};U.strokes.push(cur);stroke(U.out.getContext('2d'),{w:cur.w,p:cur.p});syncEd();ring(pt)}
+  if(U.tool==='erase'&&ART_K(U.kind)){cur={w:+$('#brush').value/U.v.s,p:[toArt(pt)]};U.strokes.push(cur);stroke(U.out.getContext('2d'),{w:cur.w,p:cur.p});syncEd();ring(pt)}
   else pan={pt,x:U.v.x,y:U.v.y}});
  vp.addEventListener('pointermove',e=>{const pt=local(e);if(!P.has(e.pointerId)){if(e.pointerType==='mouse')ring(pt);return}P.set(e.pointerId,pt);
   if(pinch&&P.size===2){const [a,b]=[...P.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),c=[(a[0]+b[0])/2,(a[1]+b[1])/2];
@@ -970,17 +991,20 @@ function box(container,rectOf,onChange){const el=document.createElement('div');e
 $('#cropReset').onclick=()=>CROP&&CROP.set({x:0,y:0,w:1,h:1});
 $('#cropApply').onclick=()=>{if(!CROP||!U.out)return;const f=CROP.get();if(f.w>.995&&f.h>.995){setTool('move');return}
  const W=U.out.width,H=U.out.height,cx=Math.round(f.x*W),cy=Math.round(f.y*H),cw=Math.max(2,Math.round(f.w*W)),ch=Math.max(2,Math.round(f.h*H));
- // keep the eraser strokes where they were (they're stored in units of the image width)
- U.strokes=U.strokes.map(s=>({w:s.w*W/cw,p:s.p.map(([px,py])=>[(px*W-cx)/cw,(py*W-cy)/cw])}));
- const o=U.crop||{x:0,y:0,w:1,h:1};U.crop={x:o.x+f.x*o.w,y:o.y+f.y*o.h,w:f.w*o.w,h:f.h*o.h};
+ // the crop is kept in the photo's own pixels (strokes already are)
+ U.org={x:U.org.x+cx,y:U.org.y+cy};U.crop={x:U.org.x,y:U.org.y,w:cw,h:ch};
  U.base=cropTo(U.base,{x:cx,y:cy,w:cw,h:ch});const n=document.createElement('canvas');n.width=cw;n.height=ch;U.out.remove();U.out=n;vp.prepend(n);redraw();fit();setTool('move');toast('Cropped')};
 function cropTo(c,r){const o=document.createElement('canvas');o.width=r.w;o.height=r.h;o.getContext('2d').drawImage(c,-r.x,-r.y);return o}
 
 async function prep(){if(!U.file)return;busy(true);await new Promise(r=>setTimeout(r,30));
  try{let c;
-  if(U.kind==='asis'){const bm=await createImageBitmap(U.file);c=shrinkTo((()=>{const k=document.createElement('canvas');k.width=bm.width;k.height=bm.height;k.getContext('2d').drawImage(bm,0,0);return k})(),4000)}
-  else c=(await digitise(U.file,{force:U.kind==='photo'?'photo':'drawing',mode:U.kind==='colour'?'color':U.kind==='drawing'?'ink':'auto',maxSize:MAX,cleanup:+$('#clean').value,rules:$('#rules').checked})).canvas;
-  if(U.crop)c=cropTo(c,{x:Math.round(U.crop.x*c.width),y:Math.round(U.crop.y*c.height),w:Math.max(2,Math.round(U.crop.w*c.width)),h:Math.max(2,Math.round(U.crop.h*c.height))});
+  if(U.kind==='asis'){U.org={x:0,y:0};const bm=await createImageBitmap(U.file);c=shrinkTo((()=>{const k=document.createElement('canvas');k.width=bm.width;k.height=bm.height;k.getContext('2d').drawImage(bm,0,0);return k})(),4000)}
+  let ox=0,oy=0;
+  if(U.kind!=='asis'){const r=await digitise(U.file,{force:U.kind==='photo'?'photo':'drawing',mode:U.kind==='colour'?'color':U.kind==='drawing'?'ink':'auto',maxSize:MAX,cleanup:+$('#clean').value,rules:$('#rules').checked});c=r.canvas;ox=r.box?r.box.x:0;oy=r.box?r.box.y:0}
+  // your crop, in the photo's pixels, trimmed to what this pass produced
+  if(U.crop&&U.kind!=='asis'){const k=U.crop,x0=Math.max(ox,k.x),y0=Math.max(oy,k.y),x1=Math.min(ox+c.width,k.x+k.w),y1=Math.min(oy+c.height,k.y+k.h);
+   if(x1-x0>2&&y1-y0>2){c=cropTo(c,{x:x0-ox,y:y0-oy,w:x1-x0,h:y1-y0});ox=x0;oy=y0}}
+  U.org={x:ox,y:oy};
   const keepView=U.out&&U.out.width===c.width&&U.out.height===c.height;
   U.base=c;const o=document.createElement('canvas');o.width=c.width;o.height=c.height;
   if(U.out)U.out.remove();U.out=o;vp.prepend(o);redraw();if(keepView)view();else fit();
@@ -988,7 +1012,7 @@ async function prep(){if(!U.file)return;busy(true);await new Promise(r=>setTimeo
  catch(e){console.error(e);$('#addErr').textContent='Couldn’t process that image'+(e&&e.message?' ('+e.message+')':'')+'. Try a smaller JPG or PNG.'}
  busy(false)}
 function setKind(k){const was=U.kind;U.kind=k;$$('#kindSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));$('#kindHint').textContent=HINTS[k];$('#tuneRow').hidden=$('#rulesRow').hidden=!ART_K(k);
- $('#eraseBtn').hidden=!ART_K(k);if(was!==k){U.strokes=[];U.crop=null;setTool('move')}}
+ $('#eraseBtn').hidden=!ART_K(k);if(was!==k){setTool('move');if(was==='asis'||k==='asis'){U.strokes=[];U.crop=null}}}
 $$('#kindSeg button').forEach(b=>b.onclick=()=>{if(U.kind!==b.dataset.k){setKind(b.dataset.k);prep()}});
 {let t;$('#clean').oninput=e=>{$('#cleanV').textContent=e.target.value;clearTimeout(t);t=setTimeout(prep,400)}}
 $('#rules').onchange=prep;

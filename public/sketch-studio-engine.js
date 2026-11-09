@@ -174,7 +174,7 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
     const dk = tot ? dark / tot : 1, wh = tot ? white / tot : 0;
     kind = P.area >= .18 && tot && (dk < .28 || (dk < .7 && wh > .3)) ? 'drawing' : 'photo';
   }
-  if (kind === 'photo') return { kind, canvas: polishPhoto(c) };
+  if (kind === 'photo') return { kind, canvas: polishPhoto(c), box: { x: 0, y: 0, W, H } };
 
   // 1. a first look at where the ink is, then a finer paper map that ignores it
   const lum0 = i => { const j = i * 4; return 1 - (.299 * d[j] / Math.max(bg[0][i], 1) + .587 * d[j + 1] / Math.max(bg[1][i], 1) + .114 * d[j + 2] / Math.max(bg[2][i], 1)); };
@@ -195,7 +195,7 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
     const px = i % W, py = (i / W) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
     A[i] = lut[Math.round(.299 * R[i] + .587 * G[i] + .114 * Bl[i])];
   }
-  if (x1 <= x0 || y1 <= y0) return { kind, colour: false, canvas: c };
+  if (x1 <= x0 || y1 <= y0) return { kind, colour: false, canvas: c, box: { x: 0, y: 0, W, H } };
 
   // 3. notebook lines and margin lines
   // (found on a fixed-strength copy, so the clean-up slider can't hide the lines from the search;
@@ -205,10 +205,29 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
     const D = new Uint8Array(N), lut0 = new Uint8Array(256), l0 = .08, h0 = .575;
     for (let v = 0; v < 256; v++) { let a = (1 - v / 255 - l0) / (h0 - l0); a = a < 0 ? 0 : a > 1 ? 1 : a; lut0[v] = Math.round(Math.pow(a, .85) * 255); }
     for (let i = 0; i < N; i++) if (inMask(i)) D[i] = lut0[Math.round(.299 * R[i] + .587 * G[i] + .114 * Bl[i])];
-    const before = D.slice();
-    lines = removeRules(D, W, H, R, G, Bl);
-    removeMargin(D, W, H, R, G, Bl);
-    erased = new Uint8Array(N); for (let i = 0; i < N; i++) if (before[i] && !D[i]) erased[i] = 1;
+    // the search is tuned for a page about 1400px across; bigger photos are searched at that size
+    // and the result scaled back up, so the result doesn't change with the photo's size
+    const sc = Math.min(1, 1400 / Math.max(W, H));
+    if (sc < 1) {
+      const w = Math.max(1, Math.round(W * sc)), h = Math.max(1, Math.round(H * sc)), n = w * h;
+      const sD = new Uint8Array(n), sR = new Uint8ClampedArray(n), sG = new Uint8ClampedArray(n), sB = new Uint8ClampedArray(n), cnt = new Uint16Array(n);
+      const aD = new Float32Array(n), aR = new Float32Array(n), aG = new Float32Array(n), aB = new Float32Array(n);
+      for (let y = 0; y < H; y++) { const yy = Math.min(h - 1, (y * sc) | 0); for (let x = 0; x < W; x++) { const k = yy * w + Math.min(w - 1, (x * sc) | 0), i = y * W + x;
+        aD[k] += D[i]; aR[k] += R[i]; aG[k] += G[i]; aB[k] += Bl[i]; cnt[k]++; } }
+      for (let k = 0; k < n; k++) { const c = cnt[k] || 1; sD[k] = aD[k] / c; sR[k] = aR[k] / c; sG[k] = aG[k] / c; sB[k] = aB[k] / c; }
+      const before = sD.slice();
+      lines = removeRules(sD, w, h, sR, sG, sB);
+      removeMargin(sD, w, h, sR, sG, sB);
+      if (lines.span) lines.span = [Math.floor(lines.span[0] / sc), Math.ceil(lines.span[1] / sc)];
+      erased = new Uint8Array(N);
+      for (let y = 0; y < H; y++) { const yy = Math.min(h - 1, (y * sc) | 0); for (let x = 0; x < W; x++) { const k = yy * w + Math.min(w - 1, (x * sc) | 0);
+        if (before[k] && !sD[k] && D[y * W + x]) erased[y * W + x] = 1; } }
+    } else {
+      const before = D.slice();
+      lines = removeRules(D, W, H, R, G, Bl);
+      removeMargin(D, W, H, R, G, Bl);
+      erased = new Uint8Array(N); for (let i = 0; i < N; i++) if (before[i] && !D[i]) erased[i] = 1;
+    }
     for (let i = 0; i < N; i++) if (erased[i]) A[i] = 0;
   }
 
@@ -254,7 +273,8 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
   else { const mg = Math.round(Math.max(a1 - a0, b1 - b0) * .04); a0 = Math.max(x0, a0 - mg); b0 = Math.max(y0, b0 - mg); a1 = Math.min(x1, a1 + mg); b1 = Math.min(y1, b1 + mg); }
   const out = document.createElement('canvas'); out.width = a1 - a0 + 1; out.height = b1 - b0 + 1;
   out.getContext('2d').drawImage(c, a0, b0, out.width, out.height, 0, 0, out.width, out.height);
-  return { kind, colour: col, canvas: out };
+  // box: where the result sits in the (resized) photo, so edits can be kept in photo coordinates
+  return { kind, colour: col, canvas: out, box: { x: a0, y: b0, W, H } };
 }
 
 /* Near-level straight lines through the ink signal S (Hough), strongest first. */
