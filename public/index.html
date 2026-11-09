@@ -486,7 +486,7 @@ textarea.inp{min-height:110px;resize:vertical}
   <div class="bgs" id="bgs" role="group" aria-label="Pick a background" hidden></div>
   <p class="rdyNote" id="readyNote">Full quality, exactly as I made it.</p>
  </div>
- <div id="p4" hidden><div class="done"><div class="burst" id="badge" role="button" tabindex="0" aria-label="Celebrate again"><div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="tick" d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div><h2 id="doneH">It's yours</h2><p id="doneTxt">Thank you for getting me a little closer.</p><div class="bonus" id="bonus" hidden><img id="bonusImg" alt="Your piece in a binder"><div><b>A little bonus</b><span id="bonusTxt">Your piece in a binder mockup, free.</span></div><button class="pill" type="button" id="bonusGo">Save</button></div><button class="pill glass wallLink" type="button" id="seeWall">See the Thank-yous</button></div></div>
+ <div id="p4" hidden><div class="done"><div class="burst" id="badge" role="button" tabindex="0" aria-label="Celebrate again"><div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="tick" d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div><h2 id="doneH">It's yours</h2><p id="doneTxt">Thank you for getting me a little closer.</p><div class="bonus" id="bonus" hidden><img id="bonusImg" alt="Your piece, framed"><div><b>A little bonus</b><span id="bonusTxt">Your piece in a binder mockup, free.</span></div><button class="pill" type="button" id="bonusGo">Save</button></div><button class="pill glass wallLink" type="button" id="seeWall">See the Thank-yous</button></div></div>
  <div class="cfoot" id="cfoot"><div class="stepn"><span id="stepTxt">Step 1/4</span><button class="tlink" type="button" id="backBtn" hidden>Back</button></div><button class="pill" type="button" id="nextBtn">Next</button></div>
 </div></div>
 
@@ -1272,8 +1272,9 @@ let BGLIVE=null;
 const BUILTIN=[{id:'white',name:'White',type:'paper',img:A.t_white},{id:'grey',name:'Grey',type:'paper',img:A.t_grey},{id:'brown',name:'Brown',type:'paper',img:A.t_brown},{id:'binder',name:'Binder',type:'mockup',img:A.t_binder,area:{x:.162,y:.113,w:.838,h:.785}}];
 const bgList=()=>[...(BGLIVE||BUILTIN).filter(b=>b.type!=='mockup'),{id:'clear',name:'Clear',type:'clear'}];
 const MOCKS=()=>(BGLIVE||BUILTIN).filter(b=>b.type==='mockup'&&b.area);
-// the bonus: the piece in each mockup, as JPEGs
-async function bonusShots(){const out=[];for(const m of MOCKS()){const im=bgImg(m);try{await im.decode()}catch(e){continue}out.push({m,c:onMockup(ART,im,m.area)})}return out}
+// the bonus: the piece framed (dark wood, cream mount) on the paper they picked, or white paper for Clear
+async function bonusShots(){const b=bgNow();let paper='#ffffff';if(b.type==='paper'){const im=bgImg(b);try{await im.decode();paper=im}catch(e){}}
+ return [{m:{name:'Framed'},c:mockup(ART,{layout:'frame',paper,frame:'#1f1c1a',blend:'multiply'})}]}
 const bgNow=()=>bgList().find(b=>b.id===bgPick)||bgList()[0];
 const IMGS={};const bgImg=b=>{if(!IMGS[b.img]){const im=new Image();im.crossOrigin='anonymous';im.src=b.img;IMGS[b.img]=im}return IMGS[b.img]};
 const isArt=it=>!!it&&(it.kind==='drawing'||it.kind==='colour');
@@ -1288,7 +1289,7 @@ function onMockup(a,B,P){const bw=B.naturalWidth,bh=B.naturalHeight;
 const styled=a=>{const b=bgNow();return b.type==='clear'?a:b.type==='mockup'?onMockup(a,bgImg(b),b.area):mockup(a,{layout:'flat',paper:bgImg(b),blend:'multiply'})};
 function dlLabel(){const clr=isArt(cur)&&bgNow().type==='clear',z=clr&&cur.kind==='drawing';if(step===3)$('#nextBtn').textContent=z?'Download PNG + SVG':clr?'Download PNG':'Download';
  $('#readyNote').textContent=cur&&cur.kind==='colour'?(clr?'A clear PNG, colours and all, ready to drop onto anything.':'Pick a background, or Clear for a see-through PNG.'):cur&&cur.kind==='drawing'?(z?'Line art comes as a ZIP: a clear PNG plus an SVG vector you can drop straight into Figma.':'Pick a background. Clear gives you the line art as PNG + SVG for Figma.'):'Full quality, exactly as I made it.';
- if(isArt(cur)&&MOCKS().length)$('#readyNote').textContent+=' A '+String(MOCKS()[0].name).toLowerCase()+' mockup comes free with it.'}
+ if(isArt(cur))$('#readyNote').textContent+=' A framed version comes free with it.'}
 function paint(){dlLabel();const cv=$('#readyCv'),v=isArt(cur)?styled(shrink(ART,900)):shrink(ART,900);cv.width=v.width;cv.height=v.height;cv.getContext('2d').drawImage(v,0,0);cv.classList.toggle('chk',isArt(cur)&&bgNow().type==='clear')}
 async function showReady(){fileBlob=null;ART=null;bgPick=bgList()[0].id;const w=$('#readyWait'),b=$('#nextBtn'),cv=$('#readyCv');
  w.hidden=false;w.textContent='Getting your file…';cv.width=cv.height=0;b.disabled=true;$('#bgs').hidden=!isArt(cur);
@@ -1338,7 +1339,7 @@ async function download(){if(!fileBlob)return;
   const b=$('#nextBtn');b.disabled=true;b.textContent='Preparing your files…';await new Promise(r=>setTimeout(r,30));
   const png=fileBlob.type==='image/png'?fileBlob:await new Promise(r=>ART.toBlob(r,'image/png'));
   const svg=trace(shrink(ART,1600)),enc=new TextEncoder();
-  const bon=[];for(const {m,c} of await bonusShots()){const j=await new Promise(r=>c.toBlob(r,'image/jpeg',.9));bon.push({name:'bonus-'+String(m.name).toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-mockup.jpg',data:new Uint8Array(await j.arrayBuffer())})}
+  const bon=[];for(const {m,c} of await bonusShots()){const j=await new Promise(r=>c.toBlob(r,'image/jpeg',.9));bon.push({name:'bonus-framed.jpg',data:new Uint8Array(await j.arrayBuffer())})}
   blob=zip([...bon,{name:slug+'.png',data:new Uint8Array(await png.arrayBuffer())},{name:slug+'.svg',data:enc.encode(svg)},
    {name:'How to use.txt',data:enc.encode('Thank you for supporting AR Studio.\r\n\r\n'+slug+'.png  is the line art on a clear background.\r\n'+slug+'.svg  is the same line art as a vector. Drag it into Figma (or Illustrator, Canva, Inkscape) and it stays sharp at any size.\r\n')}]);
   name=slug+'-line-art.zip';b.disabled=false;dlLabel()}
@@ -1346,10 +1347,10 @@ async function download(){if(!fileBlob)return;
  else name=slug+'.'+({'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[fileBlob.type]||'png');
  const r=await save(blob,name);
  if(r==='saved'){if(cur.paid)clearRef();$('#doneH').textContent='It’s yours';$('#badge').hidden=false;setTimeout(celebrate,60);
-  $('#doneTxt').textContent=cur.name+(name.endsWith('.zip')?' is downloaded as a ZIP with the PNG, the SVG for Figma and a bonus mockup.':' is downloaded.')+' Thank you for getting me a little closer.';setStep(4);tick(1.6);
+  $('#doneTxt').textContent=cur.name+(name.endsWith('.zip')?' is downloaded as a ZIP with the PNG, the SVG for Figma and a framed bonus.':' is downloaded.')+' Thank you for getting me a little closer.';setStep(4);tick(1.6);
   // anything but the ZIP: offer the mockup as its own save
-  const bx=$('#bonus');bx.hidden=true;if(isArt(cur)&&!name.endsWith('.zip')){const sh=(await bonusShots())[0];if(sh){$('#bonusImg').src=shrink(sh.c,320).toDataURL('image/jpeg',.8);$('#bonusTxt').textContent='Your piece in a '+String(sh.m.name).toLowerCase()+' mockup, free.';bx.hidden=false;
-   $('#bonusGo').onclick=async()=>{const j=await new Promise(r=>sh.c.toBlob(r,'image/jpeg',.92));if(await save(j,slug+'-'+String(sh.m.name).toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-mockup.jpg')==='saved'){$('#bonusGo').textContent='Saved';$('#bonusGo').disabled=true}}}}}
+  const bx=$('#bonus');bx.hidden=true;if(isArt(cur)&&!name.endsWith('.zip')){const sh=(await bonusShots())[0];if(sh){$('#bonusImg').src=shrink(sh.c,320).toDataURL('image/jpeg',.8);$('#bonusTxt').textContent='Your piece in a frame, ready to share or print. Free.';bx.hidden=false;
+   $('#bonusGo').onclick=async()=>{const j=await new Promise(r=>sh.c.toBlob(r,'image/jpeg',.92));if(await save(j,slug+'-framed.jpg')==='saved'){$('#bonusGo').textContent='Saved';$('#bonusGo').disabled=true}}}}}
  else if(r==='error')$('#stepTxt').textContent='Download failed. Try again.'}
 (async()=>{try{dl=window.claude&&await window.claude.use('downloads')}catch(e){dl=null}})();
 
