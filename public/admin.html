@@ -216,7 +216,7 @@ main{padding:22px 0 60px}
       <button class="ib" type="button" id="zOut" aria-label="Zoom out">−</button><button class="ib" type="button" id="zIn" aria-label="Zoom in">+</button><button class="ib" type="button" id="zFit">Fit</button>
       <span class="sp"></span><button class="ib" type="button" id="edUndo" disabled>Undo</button><button class="ib" type="button" id="edClear" disabled>Undo all</button>
      </div>
-     <div class="cropbar" id="cropBar" hidden><span class="mut" style="font-size:14px;flex:1;min-width:160px">Drag the box or its corners around the part to keep</span><button class="pill soft sm" type="button" id="cropReset">Whole image</button><button class="pill sm" type="button" id="cropApply">Crop</button></div>
+     <div class="cropbar" id="cropBar" hidden><span class="mut" style="font-size:14px;flex:1;min-width:160px">Drag the box or its corners around the part to keep. It's applied when you switch tool or add the piece</span><button class="pill soft sm" type="button" id="cropReset">Whole image</button></div>
      <label class="tune" id="brushRow" hidden><span>Eraser size</span><input type="range" id="brush" min="6" max="140" value="36"></label>
      <button class="pill soft sm" type="button" id="changeImg" style="margin-top:10px">Change image</button>
     </div>
@@ -947,7 +947,7 @@ $('#zFit').onclick=fit;
 vp.addEventListener('wheel',e=>{e.preventDefault();const r=vp.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
 function setTool(t){U.tool=t;$$('.tools2 button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));vp.classList.toggle('erase',t==='erase');$('#brushRow').hidden=t!=='erase';$('#ring').hidden=true;
  $('#cropBar').hidden=t!=='crop';if(t==='crop'&&U.out){if(!CROP)CROP=box(vp,()=>({left:U.v.x,top:U.v.y,width:U.out.width*U.v.s,height:U.out.height*U.v.s}));CROP.set({x:0,y:0,w:1,h:1})}else if(CROP){CROP.remove();CROP=null}}
-$$('.tools2 button').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
+$$('.tools2 button').forEach(b=>b.onclick=()=>{if(U.tool==='crop'&&b.dataset.t!=='crop')applyCrop();setTool(b.dataset.t)});
 // eraser strokes are kept in the photo's own pixels, so they can be undone and stay put when you change
 // Clean-up, notebook lines or the type (the drawing's outline can move as it is redone)
 function stroke(x,s){x.save();x.globalCompositeOperation='destination-out';x.lineCap=x.lineJoin='round';x.strokeStyle='#000';x.lineWidth=s.w;x.beginPath();
@@ -989,11 +989,12 @@ function box(container,rectOf,onChange){const el=document.createElement('div');e
  const up=()=>{drag=null};el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
  return {draw,get:()=>({...f}),set(v){f={...v};draw()},remove(){el.remove()}}}
 $('#cropReset').onclick=()=>CROP&&CROP.set({x:0,y:0,w:1,h:1});
-$('#cropApply').onclick=()=>{if(!CROP||!U.out)return;const f=CROP.get();if(f.w>.995&&f.h>.995){setTool('move');return}
+// no separate Crop button: the box is applied when you switch to Move or Erase, or add the piece
+function applyCrop(){if(!CROP||!U.out)return;const f=CROP.get();if(f.w>.995&&f.h>.995)return;
  const W=U.out.width,H=U.out.height,cx=Math.round(f.x*W),cy=Math.round(f.y*H),cw=Math.max(2,Math.round(f.w*W)),ch=Math.max(2,Math.round(f.h*H));
  // the crop is kept in the photo's own pixels (strokes already are)
  U.org={x:U.org.x+cx,y:U.org.y+cy};U.crop={x:U.org.x,y:U.org.y,w:cw,h:ch};
- U.base=cropTo(U.base,{x:cx,y:cy,w:cw,h:ch});const n=document.createElement('canvas');n.width=cw;n.height=ch;U.out.remove();U.out=n;vp.prepend(n);redraw();fit();setTool('move');toast('Cropped')};
+ U.base=cropTo(U.base,{x:cx,y:cy,w:cw,h:ch});const n=document.createElement('canvas');n.width=cw;n.height=ch;U.out.remove();U.out=n;vp.prepend(n);redraw();fit();CROP.set({x:0,y:0,w:1,h:1});toast('Cropped')}
 function cropTo(c,r){const o=document.createElement('canvas');o.width=r.w;o.height=r.h;o.getContext('2d').drawImage(c,-r.x,-r.y);return o}
 
 async function prep(){if(!U.file)return;busy(true);await new Promise(r=>setTimeout(r,30));
@@ -1034,7 +1035,7 @@ function trim(c){const x=c.getContext('2d'),{width:W,height:H}=c,d=x.getImageDat
  if(x1<0)return c;const p=Math.round(Math.max(W,H)*.02);x0=Math.max(0,x0-p);y0=Math.max(0,y0-p);x1=Math.min(W-1,x1+p);y1=Math.min(H-1,y1+p);
  if(x0===0&&y0===0&&x1===W-1&&y1===H-1)return c;const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;o.getContext('2d').drawImage(c,-x0,-y0);return o}
 const extOf=b=>({'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[b.type]||'png');
-$('#addForm').onsubmit=async e=>{e.preventDefault();if($('#addBtn').disabled)return;const btn=$('#addBtn'),err=$('#addErr');err.textContent='';
+$('#addForm').onsubmit=async e=>{e.preventDefault();if($('#addBtn').disabled)return;if(U.tool==='crop'){applyCrop();setTool('move')}const btn=$('#addBtn'),err=$('#addErr');err.textContent='';
  const name=$('#pName').value.trim(),price=+$('#pPrice').value||1000,tag=cleanTag($('#pTag').value)||'random';if(price<100){err.textContent='Price must be from ₦100';return}
  btn.disabled=true;btn.textContent='Preparing…';
  try{const kind=ART_K(U.kind)?U.kind:'photo';

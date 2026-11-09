@@ -139,7 +139,7 @@ h1{font:400 clamp(34px,8vw,56px)/1.05 "IM Fell English",Georgia,serif;letter-spa
  <div class="edvp" id="edvp"><canvas id="edc"></canvas><div class="ring" id="ring" hidden></div></div>
  <div class="edbar">
   <label id="brushRow" hidden style="flex:1 1 100%;display:flex;align-items:center;gap:12px"><b style="font-size:14px">Brush</b><input type="range" id="brush" min="6" max="120" value="30" aria-label="Brush size" style="flex:1;min-width:0"><span id="brushV" style="min-width:3ch;text-align:right;font-variant-numeric:tabular-nums">30</span></label>
-  <span id="cropBar" hidden style="flex:1 1 100%;display:flex;align-items:center;gap:10px"><span class="tnote" style="flex:1;min-width:150px">Drag the box or its corners around what to keep</span><button class="sbtn" type="button" id="cropApply">Crop</button></span>
+  <span id="cropBar" hidden style="flex:1 1 100%;display:flex;align-items:center;gap:10px"><span class="tnote" style="flex:1;min-width:150px">Drag the box or its corners around what to keep, then tap Done</span></span>
   <button class="sbtn" type="button" id="edUndo" disabled>Undo</button><span style="flex:1"></span>
   <button class="sbtn" type="button" id="edCancel">Cancel</button><button class="sbtn on" type="button" id="edDone">Done</button>
  </div>
@@ -869,7 +869,7 @@ $('#resetBtn').onclick=()=>{T.cropR=null;T.mask=null;if(lastFile)load(lastFile)}
  const view2=()=>{cv.style.transform='translate('+E.v.x+'px,'+E.v.y+'px) scale('+E.v.s+')';if(E.box)E.box.draw()};
  const fit=()=>{const r=vp.getBoundingClientRect(),s=Math.min((r.width-32)/E.work.width,(r.height-32)/E.work.height);E.v={s,x:(r.width-E.work.width*s)/2,y:(r.height-E.work.height*s)/2};view2()};
  const push=()=>{const c=document.createElement('canvas');c.width=E.work.width;c.height=E.work.height;c.getContext('2d').drawImage(E.work,0,0);E.hist.push({c,n:E.strokes.length,off:{...E.off},f:{...E.f}});if(E.hist.length>12)E.hist.shift();$('#edUndo').disabled=false};
- const tool=t=>{E.tool=t;$$('#ed .edtop [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));vp.classList.toggle('erase',t==='erase');$('#brushRow').hidden=t!=='erase';$('#cropBar').hidden=t!=='crop';$('#ring').hidden=true;
+ const tool=t=>{if(E.tool==='crop'&&t!=='crop')applyCrop();E.tool=t;$$('#ed .edtop [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));vp.classList.toggle('erase',t==='erase');$('#brushRow').hidden=t!=='erase';$('#cropBar').hidden=t!=='crop';$('#ring').hidden=true;
   if(t==='crop'){if(!E.box)E.box=box();E.box.set({x:0,y:0,w:1,h:1})}else if(E.box){E.box.remove();E.box=null}};
  function box(){const el=document.createElement('div');el.className='cbox';el.innerHTML='<i></i><i></i><i></i><i></i>';vp.append(el);let f={x:0,y:0,w:1,h:1},d=null;
   const rect=()=>({l:E.v.x,t:E.v.y,w:E.work.width*E.v.s,h:E.work.height*E.v.s});
@@ -900,13 +900,14 @@ $('#resetBtn').onclick=()=>{T.cropR=null;T.mask=null;if(lastFile)load(lastFile)}
  vp.addEventListener('pointerleave',()=>$('#ring').hidden=true);
  vp.addEventListener('wheel',e=>{e.preventDefault();const r=vp.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,s=Math.max(.05,Math.min(20,E.v.s*Math.exp(-e.deltaY*.0015)));E.v={s,x:mx-(mx-E.v.x)*s/E.v.s,y:my-(my-E.v.y)*s/E.v.s};view2()},{passive:false});
  $('#edUndo').onclick=()=>{const h=E.hist.pop();if(h){E.work=h.c;E.strokes.length=h.n;E.off=h.off;E.f=h.f;draw()}$('#edUndo').disabled=!E.hist.length};
- $('#cropApply').onclick=()=>{if(!E.box)return;const f=E.box.get();if(f.w>.995&&f.h>.995){tool('move');return}push();E.off={x:E.off.x+Math.round(f.x*E.work.width),y:E.off.y+Math.round(f.y*E.work.height)};E.work=cropC(E.work,f);
-  const o=E.f;E.f={x:o.x+f.x*o.w,y:o.y+f.y*o.h,w:f.w*o.w,h:f.h*o.h};draw();fit();tool('move')};
- const close=()=>{ed.hidden=true;document.body.style.overflow='';tool('move')};
+ // the crop box is applied when you tap Done or switch to Move or Erase; Cancel drops it
+ function applyCrop(){if(!E.box)return;const f=E.box.get();if(f.w>.995&&f.h>.995)return;push();E.off={x:E.off.x+Math.round(f.x*E.work.width),y:E.off.y+Math.round(f.y*E.work.height)};E.work=cropC(E.work,f);
+  const o=E.f;E.f={x:o.x+f.x*o.w,y:o.y+f.y*o.h,w:f.w*o.w,h:f.h*o.h};E.box.set({x:0,y:0,w:1,h:1});draw();fit()}
+ const close=()=>{if(E.box){E.box.remove();E.box=null}ed.hidden=true;document.body.style.overflow='';tool('move')};
  $('#editBtn').onclick=()=>{if(!art)return;E.work=document.createElement('canvas');E.work.width=art.width;E.work.height=art.height;E.work.getContext('2d').drawImage(art,0,0);
   E.hist=[];E.f={x:0,y:0,w:1,h:1};E.strokes=[];E.off={x:0,y:0};$('#edUndo').disabled=true;ed.hidden=false;document.body.style.overflow='hidden';draw();requestAnimationFrame(fit)};
  $('#edCancel').onclick=close;
- $('#edDone').onclick=()=>{
+ $('#edDone').onclick=()=>{applyCrop();
   // remember the erasing in the photo's coordinates, so it stays when the drawing is redone in another Type
   if(E.strokes.length&&T.frame){if(!T.mask){T.mask=document.createElement('canvas');T.mask.width=T.frame.W;T.mask.height=T.frame.H}
    const x=T.mask.getContext('2d');x.lineCap=x.lineJoin='round';x.strokeStyle='#000';
