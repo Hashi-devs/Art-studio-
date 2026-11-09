@@ -198,10 +198,18 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
   if (x1 <= x0 || y1 <= y0) return { kind, colour: false, canvas: c };
 
   // 3. notebook lines and margin lines
-  let lines = { tracks: [], ruled: false };
+  // (found on a fixed-strength copy, so the clean-up slider can't hide the lines from the search;
+  //  whatever is erased there is erased from the real drawing too)
+  let lines = { tracks: [], ruled: false }, erased = null;
   if (rules) {
-    lines = removeRules(A, W, H);
-    removeMargin(A, W, H, R, G, Bl);
+    const D = new Uint8Array(N), lut0 = new Uint8Array(256), l0 = .08, h0 = .575;
+    for (let v = 0; v < 256; v++) { let a = (1 - v / 255 - l0) / (h0 - l0); a = a < 0 ? 0 : a > 1 ? 1 : a; lut0[v] = Math.round(Math.pow(a, .85) * 255); }
+    for (let i = 0; i < N; i++) if (inMask(i)) D[i] = lut0[Math.round(.299 * R[i] + .587 * G[i] + .114 * Bl[i])];
+    const before = D.slice();
+    lines = removeRules(D, W, H);
+    removeMargin(D, W, H, R, G, Bl);
+    erased = new Uint8Array(N); for (let i = 0; i < N; i++) if (before[i] && !D[i]) erased[i] = 1;
+    for (let i = 0; i < N; i++) if (erased[i]) A[i] = 0;
   }
 
   // 4. coloured or one-colour ink?
@@ -218,12 +226,11 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
     if (col) {
       const m = Math.min(R[i], G[i], Bl[i]), den = 255 - m, base = den / 255;
       const lc = lo * .5; let a = base <= lc ? 0 : Math.round(255 * Math.min(1, (base - lc) / Math.max(.05, 1 - lc) * (1 + darkness / 200)));
-      if (!A[i] && lines.ruled) a = 0; // erased notebook lines stay erased
+      if (erased && erased[i]) a = 0; // erased notebook lines stay erased
       if (den > 1) { o[j] = (R[i] - m) / den * 255; o[j + 1] = (G[i] - m) / den * 255; o[j + 2] = (Bl[i] - m) / den * 255; }
       o[j + 3] = inMask(i) ? a : 0; A[i] = o[j + 3];
     } else { o[j] = rgb[0]; o[j + 1] = rgb[1]; o[j + 2] = rgb[2]; o[j + 3] = A[i]; }
   }
-  if (col && rules && lines.ruled) { removeRules(A, W, H); removeMargin(A, W, H, R, G, Bl); }
   // 5. the page itself: when ruled lines show where the sheet is, drop what's beside it (spiral, the next page)
   // (only marks wholly beside the sheet go; anything reaching onto it stays)
   if (lines.ruled && lines.span) { const [s0, s1] = lines.span, lab = new Uint8Array(N), q = new Int32Array(N);
