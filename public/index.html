@@ -56,8 +56,8 @@ button{font-family:inherit}
 .top.onhero .logo,.top.onhero .ibtn,.top.onhero .wm{color:#fff}
 .hero{margin-top:-64px}
 .top.sc:not(.onhero){background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);box-shadow:inset 0 -1px 0 var(--line)}
-.top .wrap{display:flex;justify-content:space-between;align-items:center;height:64px}
-.logo{display:flex;color:var(--ink);text-decoration:none}
+.top .wrap{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:64px}
+.logo{justify-self:center;display:flex;color:var(--ink);text-decoration:none}
 .wm{display:inline-flex;flex-direction:column;align-items:center;color:var(--ink);white-space:nowrap;line-height:1}
 .wm b{font:400 34px/.82 "Chaumont Script","Brush Script MT",cursive;letter-spacing:-.01em;padding-top:6px}
 .wm i{font:600 8.5px/1 "Google Sans Flex",system-ui,sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:.34em;margin:1px 0 0 .34em}
@@ -77,6 +77,7 @@ section{padding:56px 0}
 .hero h1{font-size:clamp(34px,8.6vw,84px);line-height:1.04;text-wrap:balance;color:#fff;text-shadow:0 2px 24px rgba(0,0,0,.35)}
 .hero h1 i{font-style:italic}
 .hero p{max-width:34ch;margin:18px auto 0;font-size:clamp(15px,2.2vw,19px);line-height:1.55;color:rgba(255,255,255,.88);text-wrap:balance}
+@media(min-width:760px){.hero .hin{max-width:1000px}.hero .hin h1{white-space:nowrap}.hero .hin p{max-width:62ch}}
 .hero .pill{background:#fff;color:#0f1630;border-color:#fff}.hero .pill.glass{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
 .hero .in{opacity:0;transform:translateY(16px)}
@@ -204,7 +205,7 @@ section{padding:56px 0}
 .ov{position:fixed;inset:0;z-index:60;background:var(--scrim);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s}
 .ov.show{opacity:1;visibility:visible}
 .menu .wrap{height:100%;display:flex;flex-direction:column}
-.menu .bar2{height:64px;display:flex;align-items:center;justify-content:flex-end}
+.menu .bar2{height:64px;display:flex;align-items:center}
 .mlist{list-style:none;margin:auto 0;padding:0 0 12vh}
 .mlist a,.mlist span{display:flex;align-items:center;gap:12px;font-family:"IM Fell English",Georgia,serif;font-size:clamp(40px,10vw,64px);line-height:1.15;text-decoration:none;color:var(--ink);padding:4px 0;opacity:0;transform:translateY(18px);transition:opacity .45s,transform .5s cubic-bezier(.2,.8,.2,1)}
 .mlist span{color:var(--faint);cursor:not-allowed}
@@ -213,6 +214,7 @@ section{padding:56px 0}
 .mlist li:nth-child(2) *{transition-delay:.05s}.mlist li:nth-child(3) *{transition-delay:.1s}.mlist li:nth-child(4) *{transition-delay:.15s}.mlist li:nth-child(5) *{transition-delay:.2s}.mlist li:nth-child(6) *{transition-delay:.25s}
 .sheet{--accent:var(--sheetAccent);--btn:var(--sheetAccent);--btnInk:var(--sheetInk);position:absolute;left:0;right:0;bottom:0;max-height:92svh;overflow:auto;background:var(--surf);border-radius:28px 28px 0 0;box-shadow:0 -10px 40px -10px rgba(0,0,0,.35);transform:translateY(100%);transition:transform .45s cubic-bezier(.2,.8,.2,1);padding:10px 20px calc(24px + env(safe-area-inset-bottom,0px))}
 .ov.show .sheet{transform:none}
+@media(max-width:759px){#who .sheet{left:16px;right:16px;top:50%;bottom:auto;max-height:84svh;border-radius:28px;transform:translateY(calc(-50% + 30px));opacity:0;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s;padding-top:18px}#who.show .sheet{transform:translateY(-50%);opacity:1}#who .sheet::before{display:none}}
 .sheet::before{content:"";display:block;width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 6px}
 @media(min-width:760px){.sheet{left:50%;right:auto;top:50%;bottom:auto;width:560px;max-height:88vh;border-radius:28px;transform:translate(-50%,calc(-50% + 30px));opacity:0;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s;padding-top:20px}.ov.show .sheet{transform:translate(-50%,-50%);opacity:1}.sheet::before{display:none}.stage{width:100%;aspect-ratio:auto;height:46vh}}
 .shtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -282,9 +284,9 @@ textarea.inp{min-height:110px;resize:vertical}
 .pwrap .bar2{height:64px;display:flex;align-items:center;position:sticky;top:0}
 .thead{text-align:center;margin:8px 0 34px}.thead h2{font-size:clamp(44px,10vw,72px);line-height:1}.thead p{color:var(--mut);margin:12px auto 0;max-width:40ch}
 .names{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:.1em .7em;text-align:center;font-size:clamp(28px,7.4vw,56px);padding:.2em 0}
-.nm{border:0;background:none;padding:0;margin:0;color:var(--ink);cursor:pointer;font:400 1em/1.15 "IM Fell English",Georgia,serif;letter-spacing:-.005em;overflow-wrap:anywhere;transition:opacity .2s}
+.nm{border:0;background:none;padding:0;margin:0;color:var(--mut);cursor:pointer;font:400 1em/1.15 "IM Fell English",Georgia,serif;letter-spacing:-.005em;overflow-wrap:anywhere;transition:color .2s}
 .nm:active{opacity:.55}
-@media(hover:hover){.names:hover .nm{opacity:.35}.names .nm:hover{opacity:1}}
+@media(hover:hover){.names .nm:hover,.names .nm.on,.names .nm:focus-visible{color:var(--ink)}}
 .names .empty{width:100%;font-size:16px}
 .wmeta{margin:-2px 0 16px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
 .wmsg{margin:0;font-family:"IM Fell English",Georgia,serif;font-size:22px;line-height:1.4;padding:6px 0 6px 16px;border-left:2px solid var(--faint);white-space:pre-line}
@@ -320,8 +322,9 @@ textarea.inp{min-height:110px;resize:vertical}
 <div id="intro" aria-hidden="true"><svg id="introSvg"></svg></div>
 
 <header class="top" id="top"><div class="wrap">
- <a class="logo" href="#home" aria-label="AR Studios, home"><span class="wm" aria-hidden="true"><b>AR</b><i>Studios</i></span></a>
  <button class="ibtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg></button>
+ <a class="logo" href="#home" aria-label="AR Studios, home"><span class="wm" aria-hidden="true"><b>AR</b><i>Studios</i></span></a>
+ <span aria-hidden="true"></span>
 </div></header>
 
 <main id="home">
@@ -1398,7 +1401,7 @@ async function openThanks(){openOv('thanks');const box=$('#names');
   if(LIVE){try{PEOPLE=(await api('/thanks')).people}catch(e){box.innerHTML='<div class="empty"><span></span></div>';box.querySelector('span').textContent=e.message;return}}else PEOPLE=DEMO_THANKS}
  if(!PEOPLE.length){box.innerHTML='<div class="empty"><h3>Your name could be first</h3><span>Pick a piece or donate, and you’ll show up here.</span></div>';return}
  // every name once, as the person wrote it, centred and widely spaced so each line ends where it ends
- box.replaceChildren(...PEOPLE.map(p=>{const b=document.createElement('button');b.type='button';b.className='nm';b.textContent=p.name;b.onclick=()=>openWho(p);return b}))}
+ box.replaceChildren(...PEOPLE.map(p=>{const b=document.createElement('button');b.type='button';b.className='nm';b.textContent=p.name;b.onclick=()=>{box.querySelectorAll('.nm.on').forEach(x=>x.classList.remove('on'));b.classList.add('on');openWho(p)};return b}))}
 function openWho(p){$('#wName').textContent=p.name;$('#wMeta').textContent=(p.type==='donation'?'Donated':'Bought a piece')+' · '+fmtDate(p.date);
  $('#wItem').hidden=!p.piece;if(p.piece){$('#wImg').src=p.piece.img||'';$('#wThumb').className='thumb'+(isArt(p.piece)?' d':'');$('#wPiece').textContent=p.piece.name}
  const m=$('#wMsg');m.textContent=p.message||'No message, just kindness.';m.classList.toggle('none',!p.message);openOv('who')}
