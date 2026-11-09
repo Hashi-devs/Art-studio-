@@ -208,27 +208,33 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
     // the search is tuned for a page about 1400px across; bigger photos are searched at that size
     // and the result scaled back up, so the result doesn't change with the photo's size
     const sc = Math.min(1, 1400 / Math.max(W, H));
+    const w = Math.max(1, Math.round(W * sc)), h = Math.max(1, Math.round(H * sc)), n = w * h;
+    let sD = D, sR = R, sG = G, sB = Bl;
     if (sc < 1) {
-      const w = Math.max(1, Math.round(W * sc)), h = Math.max(1, Math.round(H * sc)), n = w * h;
-      const sD = new Uint8Array(n), sR = new Uint8ClampedArray(n), sG = new Uint8ClampedArray(n), sB = new Uint8ClampedArray(n), cnt = new Uint16Array(n);
+      sD = new Uint8Array(n); sR = new Uint8ClampedArray(n); sG = new Uint8ClampedArray(n); sB = new Uint8ClampedArray(n); const cnt = new Uint16Array(n);
       const aD = new Float32Array(n), aR = new Float32Array(n), aG = new Float32Array(n), aB = new Float32Array(n);
       for (let y = 0; y < H; y++) { const yy = Math.min(h - 1, (y * sc) | 0); for (let x = 0; x < W; x++) { const k = yy * w + Math.min(w - 1, (x * sc) | 0), i = y * W + x;
         aD[k] += D[i]; aR[k] += R[i]; aG[k] += G[i]; aB[k] += Bl[i]; cnt[k]++; } }
       for (let k = 0; k < n; k++) { const c = cnt[k] || 1; sD[k] = aD[k] / c; sR[k] = aR[k] / c; sG[k] = aG[k] / c; sB[k] = aB[k] / c; }
-      const before = sD.slice();
-      lines = removeRules(sD, w, h, sR, sG, sB);
-      removeMargin(sD, w, h, sR, sG, sB);
-      if (lines.span) lines.span = [Math.floor(lines.span[0] / sc), Math.ceil(lines.span[1] / sc)];
-      erased = new Uint8Array(N);
-      for (let y = 0; y < H; y++) { const yy = Math.min(h - 1, (y * sc) | 0); for (let x = 0; x < W; x++) { const k = yy * w + Math.min(w - 1, (x * sc) | 0);
-        if (before[k] && !sD[k] && D[y * W + x]) erased[y * W + x] = 1; } }
-    } else {
-      const before = D.slice();
-      lines = removeRules(D, W, H, R, G, Bl);
-      removeMargin(D, W, H, R, G, Bl);
-      erased = new Uint8Array(N); for (let i = 0; i < N; i++) if (before[i] && !D[i]) erased[i] = 1;
     }
-    for (let i = 0; i < N; i++) if (erased[i]) A[i] = 0;
+    const before = sD.slice();
+    lines = removeRules(sD, w, h, sR, sG, sB);
+    removeMargin(sD, w, h, sR, sG, sB);
+    // a page photographed sideways: its lines run up and down, so look again with the picture turned
+    if (!lines.ruled) {
+      const tp = a => { const o = new a.constructor(n); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) o[x * h + y] = a[y * w + x]; return o; };
+      const tD = tp(before), tR = tp(sR), tG = tp(sG), tB = tp(sB);
+      const l2 = removeRules(tD, h, w, tR, tG, tB);
+      if (l2.ruled) { removeMargin(tD, h, w, tR, tG, tB);
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) sD[y * w + x] = tD[x * h + y];
+        lines = { ...l2, axis: 'v' }; }
+    }
+    if (lines.span) lines.span = [Math.floor(lines.span[0] / sc), Math.ceil(lines.span[1] / sc)];
+    // how much of each pixel survived (1 = untouched, 0 = all line), carried back to the full-size picture
+    erased = new Float32Array(N).fill(1);
+    for (let y = 0; y < H; y++) { const yy = Math.min(h - 1, (y * sc) | 0); for (let x = 0; x < W; x++) { const k = yy * w + Math.min(w - 1, (x * sc) | 0);
+      if (before[k] > sD[k]) erased[y * W + x] = before[k] ? sD[k] / before[k] : 1; } }
+    for (let i = 0; i < N; i++) if (erased[i] < 1) A[i] = Math.round(A[i] * erased[i]);
   }
 
   // 4. coloured or one-colour ink?
@@ -238,6 +244,17 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
     for (let i = 0; i < N; i += 2) if (A[i] > 90) { inked++; const mx = Math.max(R[i], G[i], Bl[i]), mn = Math.min(R[i], G[i], Bl[i]); if (mx - mn > 34 && mx > 115) colourful++; }
     col = inked > 200 && colourful / inked > .12;
   }
+  // in colour, where a notebook line was taken out, its colour goes too: refill those pixels from what lies
+  // either side of the line (skin tone, a shirt, paper), across the line's direction
+  if (col && erased && lines.ruled) {
+    const v = lines.axis !== 'v', L = v ? W : H, M = v ? H : W, at = (a, b) => v ? b * W + a : a * W + b;
+    for (let a = 0; a < L; a++) { let b = 0;
+      while (b < M) { if (erased[at(a, b)] >= .95) { b++; continue; }
+        let e = b; while (e < M - 1 && erased[at(a, e + 1)] < .95) e++;
+        const b0 = Math.max(0, b - 3), e0 = Math.min(M - 1, e + 3), p = at(a, b0), q = at(a, e0), n = e0 - b0; // the line's soft edge goes too
+        for (let k = b0 + 1; k < e0; k++) { const f = (k - b0) / n, i = at(a, k);
+          R[i] = R[p] * (1 - f) + R[q] * f; G[i] = G[p] * (1 - f) + G[q] * f; Bl[i] = Bl[p] * (1 - f) + Bl[q] * f; erased[i] = 1; }
+        b = e + 1; } } }
   const im = x.createImageData(W, H), o = im.data, rgb = hex(ink);
   for (let i = 0; i < N; i++) {
     if (!A[i] && !col) continue;
@@ -245,7 +262,7 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
     if (col) {
       const m = Math.min(R[i], G[i], Bl[i]), den = 255 - m, base = den / 255;
       const lc = lo * .5; let a = base <= lc ? 0 : Math.round(255 * Math.min(1, (base - lc) / Math.max(.05, 1 - lc) * (1 + darkness / 200)));
-      if (erased && (erased[i] || (i >= W && erased[i - W]) || (i + W < N && erased[i + W]))) a = 0; // erased notebook lines stay erased (with their soft edge)
+      if (erased) { const e = Math.min(erased[i], i >= W ? erased[i - W] : 1, i + W < N ? erased[i + W] : 1); if (e < 1) a = Math.round(a * e); } // removed notebook lines stay removed (with their soft edge)
       if (den > 1) { o[j] = (R[i] - m) / den * 255; o[j + 1] = (G[i] - m) / den * 255; o[j + 2] = (Bl[i] - m) / den * 255; }
       o[j + 3] = inMask(i) ? a : 0; A[i] = o[j + 3];
     } else { o[j] = rgb[0]; o[j + 1] = rgb[1]; o[j + 2] = rgb[2]; o[j + 3] = A[i]; }
@@ -253,15 +270,16 @@ export async function digitise(source, { maxSize = 2800, cleanup = 8, darkness =
   // 5. the page itself: when ruled lines show where the sheet is, drop what's beside it (spiral, the next page)
   // (only marks wholly beside the sheet go; anything reaching onto it stays)
   if (lines.ruled && lines.span) { const [s0, s1] = lines.span, lab = new Uint8Array(N), q = new Int32Array(N);
-    for (let s = 0; s < N; s++) { const sx = s % W; if (A[s] <= 60 || lab[s] || (sx >= s0 && sx <= s1)) continue;
+    const along = lines.axis === 'v' ? i => (i / W) | 0 : i => i % W; // across the lines: x on an upright page, y on a sideways one
+    for (let s = 0; s < N; s++) { const sx = along(s); if (A[s] <= 60 || lab[s] || (sx >= s0 && sx <= s1)) continue;
       let hd = 0, tl = 0, inside = false; q[tl++] = s; lab[s] = 1;
-      while (hd < tl) { const i = q[hd++], xx = i % W, y = (i / W) | 0; if (xx >= s0 && xx <= s1) inside = true;
+      while (hd < tl) { const i = q[hd++], xx = i % W, y = (i / W) | 0, ax = along(i); if (ax >= s0 && ax <= s1) inside = true;
         for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = xx + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const j = Y * W + X; if (A[j] > 60 && !lab[j]) { lab[j] = 1; q[tl++] = j; } } }
       if (!inside) for (let k = 0; k < tl; k++) A[q[k]] = 0; }
     // faint marks beside the sheet go too, unless they edge a stroke that was kept
     const keep = new Uint8Array(N); for (let i = 0; i < N; i++) if (A[i] > 60) keep[i] = 1;
     const near = dilate(keep, W, H, 3);
-    for (let i = 0; i < N; i++) { const xx = i % W; if ((xx < s0 || xx > s1) && A[i] <= 60 && !near[i]) A[i] = 0; } }
+    for (let i = 0; i < N; i++) { const xx = along(i); if ((xx < s0 || xx > s1) && A[i] <= 60 && !near[i]) A[i] = 0; } }
   despeckle(A, W, H);
   dropEdgeShade(A, W, H);
   /* Crop to the drawing itself (not the whole sheet), with a small margin. */
@@ -390,33 +408,25 @@ function removeRules(A, W, H, Rc, Gc, Bc) {
   const lineLike = i => { if (!tint) return true; const dr = 255 - Rc[i], dg = 255 - Gc[i], db = 255 - Bc[i], m = Math.hypot(dr, dg, db);
     if (m < 28) return true; // barely there: paper noise along the line
     return (dr * tint[0] + dg * tint[1] + db * tint[2]) / m > .95; };
-  // does a drawn stroke enter the line's band from above and leave below (or the reverse) through column x?
-  // Strokes at a slant cross a ruled line too, not only upright ones.
-  const ink = (x, y) => x >= 0 && x < W && y >= 0 && y < H && A0[y * W + x] > 70;
-  const crosses = (x, ya, yb) => {
-    const win = Math.max(4, Math.round((yb - ya + 1) * 1.6));
-    let aLo = 1e9, aHi = -1e9, bLo = 1e9, bHi = -1e9, aFar = false, bFar = false;
-    for (let dx = -win; dx <= win; dx++) {
-      if (ink(x + dx, ya - 3)) { if (dx < aLo) aLo = dx; if (dx > aHi) aHi = dx; }
-      if (ink(x + dx, yb + 3)) { if (dx < bLo) bLo = dx; if (dx > bHi) bHi = dx; }
-      if (ink(x + dx * 2, ya - 8)) aFar = true; if (ink(x + dx * 2, yb + 8)) bFar = true; }
-    // the ink beside the line must reach further out too: a real stroke, not the edge of the ruled line itself
-    const above = aHi > -1e9 && aFar, below = bHi > -1e9 && bFar;
-    if (above && below) return (aLo <= 0 && bHi >= 0) || (aHi >= 0 && bLo <= 0);
-    // a stroke that ends on the line: keep just where it meets it
-    return (above && aLo <= 1 && aHi >= -1) || (below && bLo <= 1 && bHi >= -1);
-  };
-  // erase each line, keeping strokes that cross it
+  // rebuild what lies under each line from the paper and ink just above and below it.
+  // A stroke that crosses the line is joined up again (following its slant); shading carries on across;
+  // where there's only paper either side, the line simply goes. Nothing drawn is cut, nothing of the line is left.
   let lineA = []; tr.forEach(t => { for (let xx = 0; xx < W; xx += 17) { const y = Math.round(t.yArr[xx]); if (y >= 0 && y < H) lineA.push(A[y * W + xx]); } });
   lineA.sort((a, b) => a - b); const la = lineA[lineA.length >> 1] || 120, keepA = la < 150 ? Math.min(250, la * 1.9) : 999;
+  const px = (row, x) => { if (row < 0 || row >= H) return 0; const xi = Math.round(x); return xi < 0 || xi >= W ? 0 : A0[row * W + xi]; };
   for (const t of tr) {
     const pad = Math.max(2, Math.round(t.th * .45) + 1);
     for (let xx = 0; xx < W; xx++) { const yc = t.yArr[xx];
       const ya = Math.max(0, Math.floor(yc - t.th / 2) - pad), yb = Math.min(H - 1, Math.ceil(yc + t.th / 2) + pad); if (ya > yb) continue;
-      let up = ya, dn = yb; while (up > 0 && A[(up - 1) * W + xx] > 60) up--; while (dn < H - 1 && A[(dn + 1) * W + xx] > 60) dn++;
-      if (dn - up + 1 > yb - ya + 1 + 6) continue; // a stroke crosses the line here: keep it
-      if (crosses(xx, ya, yb)) continue;           // a slanted stroke (shading, a fold) passes through here: keep it
-      for (let y = ya; y <= yb; y++) { const i = y * W + xx; if (A[i] < keepA && lineLike(i)) A[i] = 0; } } }
+      const top = ya - 1, bot = yb + 1, span = bot - top;
+      for (let y = ya; y <= yb; y++) { const i = y * W + xx; if (!(A[i] < keepA && lineLike(i))) continue;
+        // which way would a stroke run through this pixel? (the slant that best joins the ink above to the ink below)
+        const f = (y - top) / span; let v = 0, best = 1e9;
+        for (let s = -2.5; s <= 2.501; s += .5) { const d = s * span, xt = xx - d * f, xb = xx + d * (1 - f);
+          let c = Math.abs(s) * 4; for (let w = -1; w <= 1; w++) c += Math.abs(px(top, xt + w) - px(bot, xb + w)) / 3;
+          const ut = px(top, xt), lb = px(bot, xb); c -= Math.min(ut, lb) * .8; // dark-to-dark is a stroke crossing: prefer it to paper
+          if (c < best) { best = c; v = ut * (1 - f) + lb * f; } }
+        if (v < A[i]) A[i] = v < 12 ? 0 : Math.round(v); } } }
   // sweep thin, flat leftovers that sit on a line
   const n = W * H, lab = new Uint8Array(n), q = new Int32Array(n);
   for (let s = 0; s < n; s++) if (A[s] > 30 && !lab[s]) {
