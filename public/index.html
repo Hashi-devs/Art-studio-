@@ -111,6 +111,9 @@ section{padding:56px 0}
 .specs{margin:16px 0 4px;display:grid;gap:0}.specs div{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--line)}.specs div:last-child{border-bottom:0}.specs dt{color:var(--mut);font-size:14px}.specs dd{margin:0;text-align:right;font-size:15px}.specs .main dd{font-weight:600}
 .lap img{width:100%;filter:drop-shadow(0 12px 18px rgba(0,0,0,.18))}
 .ends{display:flex;justify-content:space-between;margin:10px 18px 0 34px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+.chipin{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}.chipin span{color:var(--mut);font-size:15px}
+@media (max-width:560px){.chipin{flex-direction:column;gap:10px}.chipin .pill{width:100%}}
+.chiplnk{display:block;margin:16px auto 0;color:var(--mut);font-size:15px}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
 .tile{padding:clamp(16px,4vw,26px) clamp(14px,3.6vw,24px);text-align:left;background:var(--surf2);border:0;box-shadow:none;border-radius:22px;-webkit-backdrop-filter:none;backdrop-filter:none;min-height:clamp(104px,24vw,150px)}
 .tile b{display:block;font-weight:500;font-size:clamp(21px,6vw,38px);line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -336,6 +339,7 @@ textarea.inp{min-height:110px;resize:vertical}
    <div class="card tile"><b id="tRaised">₦0</b><span>Raised so far</span></div>
    <div class="card tile"><b id="tSold">0</b><span>Sales made</span></div>
   </div>
+  <div class="chipin"><button class="pill" id="chipBtn" type="button">Chip in for the laptop</button><span>Any amount, no art needed</span></div>
  </div></section>
 
  <section id="gallery"><div class="wrap">
@@ -394,7 +398,6 @@ textarea.inp{min-height:110px;resize:vertical}
   <li><span aria-disabled="true">About <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="sr">(coming soon)</span></span></li>
   <li><a href="#gallery">Gallery</a></li>
   <li><a href="#progress">Progress</a></li>
-  <li><a href="#donate" id="donateLink">Donate</a></li>
   <li><a href="#thanks" id="thanksLink">Thank-yous</a></li>
   <li><span aria-disabled="true">Credits <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="sr">(coming soon)</span></span></li>
  </ul>
@@ -406,7 +409,7 @@ textarea.inp{min-height:110px;resize:vertical}
 </div></div>
 
 <div class="ov" id="donate" role="dialog" aria-modal="true" aria-labelledby="dT"><div class="sheet">
- <div class="shtop"><h2 id="dT">Donate</h2><button class="ibtn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="shtop"><h2 id="dT">Chip in for the laptop</h2><button class="ibtn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
  <p style="margin:0;color:var(--mut)">No art needed. Any amount moves me closer to the laptop.</p>
  <div class="amts" id="amts"></div>
  <div class="q" style="margin:12px 0 0"><label class="sr" for="custom">Other amount</label><input class="inp" id="custom" inputmode="numeric" placeholder="Other amount, in naira"></div>
@@ -417,7 +420,7 @@ textarea.inp{min-height:110px;resize:vertical}
   <label class="wallq"><input type="checkbox" id="donWall" checked><span>Show my name and message on the Thank-yous wall<small>Only if you add a name. Your email is never shown.</small></span></label>
   <p class="err" id="donErr" role="alert"></p></div>
  <p class="notice" id="donNote">Demo mode: payments aren't connected here.</p>
- <button class="pill full" id="donateGo" type="button" disabled>Donate</button>
+ <button class="pill full" id="donateGo" type="button" disabled>Chip in</button>
 </div></div>
 
 <div class="ov" id="co" role="dialog" aria-modal="true" aria-labelledby="coT"><div class="sheet">
@@ -438,6 +441,7 @@ textarea.inp{min-height:110px;resize:vertical}
    <div class="amts x4" id="xtras"></div>
    <label class="sr" for="xCustom">Other extra amount</label><input class="inp" id="xCustom" inputmode="numeric" placeholder="Or type your own amount" style="margin-top:10px"></div>
   <div class="drow tot"><span>Total</span><b id="dTotal"></b></div>
+  <button class="tlink chiplnk" type="button" id="dChip">Or just support the laptop →</button>
   </div>
  </div>
  <form id="p5" novalidate hidden>
@@ -1206,9 +1210,11 @@ $('#plans').replaceChildren(...PLANS.map(p=>{const e=document.createElement('p')
 /* contact heart */
 $('#heart').onclick=e=>{const h=e.currentTarget,on=h.classList.toggle('on');h.setAttribute('aria-pressed',on);if(on)tick(1.5)};
 
-/* donate */
+/* donate: the Chip in button under the progress, and the small link in each piece's popup */
+$('#chipBtn').onclick=()=>openOv('donate');
+$('#dChip').onclick=()=>{closeOv($('#co'));setTimeout(()=>openOv('donate'),200)};
 {let amt=0;const go=$('#donateGo'),inp=$('#custom');
- const upd=()=>{go.disabled=!(amt>0);go.textContent=amt>0?'Donate '+naira(amt,0):'Donate'};
+ const upd=()=>{go.disabled=!(amt>0);go.textContent=amt>0?'Chip in '+naira(amt,0):'Chip in'};
  $('#amts').replaceChildren(...DONATIONS.map(v=>{const b=document.createElement('button');b.type='button';b.className='amt';b.textContent=naira(v,0);b.setAttribute('aria-pressed','false');
   b.onclick=()=>{amt=v;inp.value='';$$('.amt').forEach(x=>x.setAttribute('aria-pressed',x===b));upd()};return b}));
  inp.addEventListener('input',()=>{inp.value=inp.value.replace(/\D/g,'');amt=+inp.value||0;$$('.amt').forEach(x=>x.setAttribute('aria-pressed','false'));upd()});
