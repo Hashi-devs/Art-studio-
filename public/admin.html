@@ -495,7 +495,7 @@ async function digitise(source, { maxSize = 2800, cleanup = 8, darkness = 50, bo
     for (let v = 0; v < 256; v++) { let a = (1 - v / 255 - l0) / (h0 - l0); a = a < 0 ? 0 : a > 1 ? 1 : a; lut0[v] = Math.round(Math.pow(a, .85) * 255); }
     for (let i = 0; i < N; i++) if (inMask(i)) D[i] = lut0[Math.round(.299 * R[i] + .587 * G[i] + .114 * Bl[i])];
     const before = D.slice();
-    lines = removeRules(D, W, H);
+    lines = removeRules(D, W, H, R, G, Bl);
     removeMargin(D, W, H, R, G, Bl);
     erased = new Uint8Array(N); for (let i = 0; i < N; i++) if (before[i] && !D[i]) erased[i] = 1;
     for (let i = 0; i < N; i++) if (erased[i]) A[i] = 0;
@@ -515,7 +515,7 @@ async function digitise(source, { maxSize = 2800, cleanup = 8, darkness = 50, bo
     if (col) {
       const m = Math.min(R[i], G[i], Bl[i]), den = 255 - m, base = den / 255;
       const lc = lo * .5; let a = base <= lc ? 0 : Math.round(255 * Math.min(1, (base - lc) / Math.max(.05, 1 - lc) * (1 + darkness / 200)));
-      if (erased && erased[i]) a = 0; // erased notebook lines stay erased
+      if (erased && (erased[i] || (i >= W && erased[i - W]) || (i + W < N && erased[i + W]))) a = 0; // erased notebook lines stay erased (with their soft edge)
       if (den > 1) { o[j] = (R[i] - m) / den * 255; o[j + 1] = (G[i] - m) / den * 255; o[j + 2] = (Bl[i] - m) / den * 255; }
       o[j + 3] = inMask(i) ? a : 0; A[i] = o[j + 3];
     } else { o[j] = rgb[0]; o[j + 1] = rgb[1]; o[j + 2] = rgb[2]; o[j + 3] = A[i]; }
@@ -608,7 +608,7 @@ function support(A, W, H, yArr) { let on = 0, n = 0;
 /* Notebook ruling: find the long, nearly level lines, fill in the faint ones from the page's line spacing,
    follow each one across the page, and erase it, keeping any drawn stroke that crosses a line.
    Returns the lines found and, when the page is clearly ruled, the left and right edges of the sheet. */
-function removeRules(A, W, H) {
+function removeRules(A, W, H, Rc, Gc, Bc) {
   const seeds = houghLines(A, W, H, 40, W * .085);
   let tr = [];
   for (const s of seeds) { const t = follow(A, W, H, xx => s.b + xx * s.t, 6); if (t.cover > .35 && !tr.some(o => Math.abs(o.ym - t.ym) < 5)) tr.push(t); }
@@ -647,6 +647,34 @@ function removeRules(A, W, H) {
     tr.forEach(t => { if (t.th > th0 * 2.5) t.th = th0; });
   }
   const A0 = A.slice();
+  // the lines' own colour (printed rules are usually blue, teal or purple; pencil and pen are not):
+  // when the lines have a clear tint, only pixels of that tint are erased, so drawn strokes that run
+  // along a line (shading, folds in clothing) stay
+  let tint = null;
+  if (Rc) { let sr = 0, sg = 0, sb = 0, nn = 0;
+    tr.forEach(t => { for (let xx = 0; xx < W; xx += 7) { const y = Math.round(t.yArr[xx]); if (y < 0 || y >= H) continue; const i = y * W + xx; if (A[i] < 40) continue;
+      const dr = 255 - Rc[i], dg = 255 - Gc[i], db = 255 - Bc[i], m = Math.hypot(dr, dg, db) || 1; sr += dr / m; sg += dg / m; sb += db / m; nn++; } });
+    if (nn > 30) { const m = Math.hypot(sr, sg, sb) || 1; tint = [sr / m, sg / m, sb / m];
+      if ((tint[0] + tint[1] + tint[2]) / Math.sqrt(3) > .985) tint = null; } }  // grey lines: no tint to go by
+  const lineLike = i => { if (!tint) return true; const dr = 255 - Rc[i], dg = 255 - Gc[i], db = 255 - Bc[i], m = Math.hypot(dr, dg, db);
+    if (m < 28) return true; // barely there: paper noise along the line
+    return (dr * tint[0] + dg * tint[1] + db * tint[2]) / m > .95; };
+  // does a drawn stroke enter the line's band from above and leave below (or the reverse) through column x?
+  // Strokes at a slant cross a ruled line too, not only upright ones.
+  const ink = (x, y) => x >= 0 && x < W && y >= 0 && y < H && A0[y * W + x] > 70;
+  const crosses = (x, ya, yb) => {
+    const win = Math.max(4, Math.round((yb - ya + 1) * 1.6));
+    let aLo = 1e9, aHi = -1e9, bLo = 1e9, bHi = -1e9, aFar = false, bFar = false;
+    for (let dx = -win; dx <= win; dx++) {
+      if (ink(x + dx, ya - 3)) { if (dx < aLo) aLo = dx; if (dx > aHi) aHi = dx; }
+      if (ink(x + dx, yb + 3)) { if (dx < bLo) bLo = dx; if (dx > bHi) bHi = dx; }
+      if (ink(x + dx * 2, ya - 8)) aFar = true; if (ink(x + dx * 2, yb + 8)) bFar = true; }
+    // the ink beside the line must reach further out too: a real stroke, not the edge of the ruled line itself
+    const above = aHi > -1e9 && aFar, below = bHi > -1e9 && bFar;
+    if (above && below) return (aLo <= 0 && bHi >= 0) || (aHi >= 0 && bLo <= 0);
+    // a stroke that ends on the line: keep just where it meets it
+    return (above && aLo <= 1 && aHi >= -1) || (below && bLo <= 1 && bHi >= -1);
+  };
   // erase each line, keeping strokes that cross it
   let lineA = []; tr.forEach(t => { for (let xx = 0; xx < W; xx += 17) { const y = Math.round(t.yArr[xx]); if (y >= 0 && y < H) lineA.push(A[y * W + xx]); } });
   lineA.sort((a, b) => a - b); const la = lineA[lineA.length >> 1] || 120, keepA = la < 150 ? Math.min(250, la * 1.9) : 999;
@@ -656,7 +684,8 @@ function removeRules(A, W, H) {
       const ya = Math.max(0, Math.floor(yc - t.th / 2) - pad), yb = Math.min(H - 1, Math.ceil(yc + t.th / 2) + pad); if (ya > yb) continue;
       let up = ya, dn = yb; while (up > 0 && A[(up - 1) * W + xx] > 60) up--; while (dn < H - 1 && A[(dn + 1) * W + xx] > 60) dn++;
       if (dn - up + 1 > yb - ya + 1 + 6) continue; // a stroke crosses the line here: keep it
-      for (let y = ya; y <= yb; y++) if (A[y * W + xx] < keepA) A[y * W + xx] = 0; } }
+      if (crosses(xx, ya, yb)) continue;           // a slanted stroke (shading, a fold) passes through here: keep it
+      for (let y = ya; y <= yb; y++) { const i = y * W + xx; if (A[i] < keepA && lineLike(i)) A[i] = 0; } } }
   // sweep thin, flat leftovers that sit on a line
   const n = W * H, lab = new Uint8Array(n), q = new Int32Array(n);
   for (let s = 0; s < n; s++) if (A[s] > 30 && !lab[s]) {
@@ -665,7 +694,8 @@ function removeRules(A, W, H) {
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = xx + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const j = Y * W + X; if (A[j] > 30 && !lab[j]) { lab[j] = 1; q[tl++] = j; } } }
     const h = Y1 - Y0 + 1, w = X1 - X0 + 1, xm = (X0 + X1) >> 1, ym = (Y0 + Y1) / 2;
     if (w < h * 3 || h > 14) continue;
-    if (tr.some(t => Math.abs(t.yArr[xm] - ym) <= t.th / 2 + 5)) for (let k = 0; k < tl; k++) A[q[k]] = 0;
+    if (tr.some(t => Math.abs(t.yArr[xm] - ym) <= t.th / 2 + 5)) { let ok = 0; for (let k = 0; k < tl; k++) if (lineLike(q[k])) ok++;
+      if (ok / tl > .7) for (let k = 0; k < tl; k++) A[q[k]] = 0; }
   }
   // the sheet's edges: where most lines start and end
   let span = null;
