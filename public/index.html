@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AR Studio</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap">
-<script>try{const t=localStorage.getItem('ar-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+
 <style>
 @font-face{font-family:'Google Sans Flex';src:url(/fonts/google-sans-flex/GoogleSansFlex.woff) format('woff');font-weight:300 800;font-style:normal;font-display:swap}
 
@@ -56,9 +56,11 @@ button{font-family:inherit}
 .top.onhero .logo,.top.onhero .ibtn,.top.onhero .wm{color:#fff}
 .hero{margin-top:-64px}
 .top.sc:not(.onhero){background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);box-shadow:inset 0 -1px 0 var(--line)}
-.top .wrap{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:64px}
-.logo{justify-self:center;display:flex;color:var(--ink);text-decoration:none}
-.wm{font:400 30px/1 "Chaumont Script","Brush Script MT",cursive;color:var(--ink);white-space:nowrap;padding-top:4px;letter-spacing:.005em}
+.top .wrap{display:flex;justify-content:space-between;align-items:center;height:64px}
+.logo{display:flex;color:var(--ink);text-decoration:none}
+.wm{display:inline-flex;flex-direction:column;align-items:center;color:var(--ink);white-space:nowrap;line-height:1}
+.wm b{font:400 34px/.82 "Chaumont Script","Brush Script MT",cursive;letter-spacing:-.01em;padding-top:6px}
+.wm i{font:600 8.5px/1 "Google Sans Flex",system-ui,sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:.34em;margin:1px 0 0 .34em}
 
 /* sections */
 section{padding:56px 0}
@@ -192,7 +194,7 @@ section{padding:56px 0}
 .soc a{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--ink);text-decoration:none;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
 .soc a:active{transform:scale(.9)}.soc svg{width:20px;height:20px}
 .foot{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--mut)}
-.foot .l{display:flex;align-items:center;gap:10px}.foot .l .wm{font-size:20px;padding-top:2px}
+.foot .l{display:flex;align-items:center;gap:10px}.foot .l .wm b{font-size:26px;padding-top:4px}.foot .l .wm i{font-size:7px}
 .made{white-space:nowrap;font-size:13px}
 .heart{display:inline-grid;place-items:center;width:28px;height:28px;margin:-8px -4px;padding:0;border:0;background:none;color:#e0453a;vertical-align:middle;cursor:pointer}.heart svg{width:16px;height:16px}.heart.on svg{animation:beat .5s}
 @keyframes beat{40%{transform:scale(1.3)}}
@@ -202,7 +204,7 @@ section{padding:56px 0}
 .ov{position:fixed;inset:0;z-index:60;background:var(--scrim);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s}
 .ov.show{opacity:1;visibility:visible}
 .menu .wrap{height:100%;display:flex;flex-direction:column}
-.menu .bar2{height:64px;display:flex;align-items:center}
+.menu .bar2{height:64px;display:flex;align-items:center;justify-content:flex-end}
 .mlist{list-style:none;margin:auto 0;padding:0 0 12vh}
 .mlist a,.mlist span{display:flex;align-items:center;gap:12px;font-family:"IM Fell English",Georgia,serif;font-size:clamp(40px,10vw,64px);line-height:1.15;text-decoration:none;color:var(--ink);padding:4px 0;opacity:0;transform:translateY(18px);transition:opacity .45s,transform .5s cubic-bezier(.2,.8,.2,1)}
 .mlist span{color:var(--faint);cursor:not-allowed}
@@ -318,9 +320,8 @@ textarea.inp{min-height:110px;resize:vertical}
 <div id="intro" aria-hidden="true"><svg id="introSvg"></svg></div>
 
 <header class="top" id="top"><div class="wrap">
+ <a class="logo" href="#home" aria-label="AR Studios, home"><span class="wm" aria-hidden="true"><b>AR</b><i>Studios</i></span></a>
  <button class="ibtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg></button>
- <a class="logo" href="#home" aria-label="AR Studios, home"><span class="wm" aria-hidden="true">AR Studios</span></a>
- <button class="ibtn" id="themeBtn" type="button" aria-label="Switch to dark mode"></button>
 </div></header>
 
 <main id="home">
@@ -394,7 +395,7 @@ textarea.inp{min-height:110px;resize:vertical}
     <a class="glass" href="https://www.instagram.com/artistaamuro" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
     <a class="glass" href="mailto:arstudios.hello@gmail.com" aria-label="Email arstudios.hello@gmail.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></a>
    </div>
-   <div class="foot"><span class="l"><span class="wm" aria-hidden="true">AR Studios</span><span id="yr">2026</span></span>
+   <div class="foot"><span class="l"><span class="wm" aria-hidden="true"><b>AR</b><i>Studios</i></span><span id="yr">2026</span></span>
     <span class="made">Made with <button class="heart" id="heart" type="button" aria-label="Send some love" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg></button> by Àmúró and Klaus</span></div>
   </div>
  </div></section>
@@ -1122,13 +1123,6 @@ document.addEventListener('pointerdown',e=>{if(e.target.closest('button,a,.opt')
   ready.then(()=>{build();setTimeout(()=>svg.classList.add('pop'),2150);setTimeout(go,2500)})}}
 
 /* theme */
-{const root=document.documentElement,mq=matchMedia('(prefers-color-scheme: dark)'),b=$('#themeBtn');
- const cur=()=>root.dataset.theme||(mq.matches?'dark':'light');
- const moon='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>',sun='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
- const mark=()=>{const d=cur()==='dark';b.innerHTML=d?sun:moon;b.setAttribute('aria-label',d?'Switch to light mode':'Switch to dark mode')};
- b.onclick=()=>{const n=cur()==='dark'?'light':'dark';root.dataset.theme=n;try{localStorage.setItem('ar-theme',n)}catch(e){}mark()};
- mq.addEventListener('change',mark);mark()}
-
 /* header glass on scroll */
 {const t=$('#top'),hb=$('#heroBox'),on=()=>{t.classList.toggle('sc',scrollY>8);t.classList.toggle('onhero',!!hb&&hb.getBoundingClientRect().bottom>64)};addEventListener('resize',on);addEventListener('scroll',on,{passive:true});on()}
 
