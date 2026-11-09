@@ -1,6 +1,6 @@
 {
   // Cloudflare Workers config. Cloudflare reads this when it builds the site from GitHub.
-  "name": "art-studio",
+  "name": "shop",
   "main": "src/worker.js",
   "compatibility_date": "2026-06-01",
   // Keep the settings you add in the dashboard (Variables and Secrets) when GitHub pushes redeploy.
@@ -10,7 +10,7 @@
   "vars": {
     "SUPABASE_URL": "https://bpguacbcusxxoyrqpbdj.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_2fi7hyz1V9SEuBYJv6J4GQ_Y2RiB8N-",
-    "SITE_URL": "https://art-studio.ar-studio.workers.dev"
+    "SITE_URL": "https://shop.arstudios.workers.dev"
   },
   "assets": {
     "directory": "./public",

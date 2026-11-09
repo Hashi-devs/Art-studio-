@@ -46,7 +46,7 @@ Prices always come from the database, so nobody can change what they pay from th
    | `SUPABASE_SERVICE_ROLE_KEY` | the secret key (`sb_secret_…`, or legacy `service_role`) — **Secret** |
    | `PAYSTACK_SECRET_KEY` | `sk_test_…` (later `sk_live_…`) — **Secret** |
    | `ADMIN_EMAIL` | the email of your Supabase admin user |
-   | `SITE_URL` | your site address, e.g. `https://ar-studio.yourname.workers.dev` (no `/` at the end) |
+   | `SITE_URL` | your site address, e.g. `https://shop.yourname.workers.dev` (no `/` at the end) |
 
 6. In Paystack → **Settings → API Keys & Webhooks**, set the Webhook URL to `SITE_URL` + `/api/paystack-webhook`.
 7. Every push to `main` on GitHub now updates the site automatically.
