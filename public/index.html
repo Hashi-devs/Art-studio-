@@ -141,8 +141,6 @@ section{padding:56px 0}
 .thumb{aspect-ratio:4/5;border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--line);transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
 .thumb img{width:100%;height:100%;object-fit:cover}
 .grid.ph{display:block;columns:2;column-gap:14px}@media(min-width:760px){.grid.ph{columns:4;column-gap:20px}}.grid.ph .art{display:block;width:100%;break-inside:avoid;margin-bottom:18px}.grid.ph .thumb{aspect-ratio:auto}.grid.ph .thumb img{height:auto;display:block}.grid.ph .empty{display:block}
-.grid .ghead{grid-column:1/-1;margin:14px 0 -4px;font-size:13px;line-height:1;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
-.grid .ghead:first-child{margin-top:0}
 .grid.tk{grid-template-columns:minmax(0,1fr)}@media(min-width:760px){.grid.tk{grid-template-columns:repeat(2,minmax(0,1fr))}}.grid.tk .art{background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:5px;overflow:hidden}.grid.tk .thumb{aspect-ratio:16/9;border:0;border-radius:14px}.grid.tk .thumb img{object-position:top}.grid.tk .art h3{font-size:20px;margin:10px 10px 2px}.grid.tk .art span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0 10px 10px;font-size:14px;line-height:1.4}@media(hover:hover){.grid.tk .art:hover .thumb{transform:none}}
 .grid .art.wide{grid-column:1/-1;background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:5px;overflow:hidden}.grid .art.wide .thumb{aspect-ratio:16/9;border:0;border-radius:14px}.grid .art.wide .thumb img{object-position:top}.grid .art.wide h3{font-size:20px;margin:10px 10px 2px}.grid .art.wide span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0 10px 10px;font-size:14px;line-height:1.4}@media(min-width:760px){.grid .art.wide{grid-column:span 2}}
 .thumb.d{background:#f1f0ec}.thumb.d img{object-fit:contain;padding:12px}
@@ -375,7 +373,7 @@ textarea.inp{min-height:110px;resize:vertical}
    <p class="padhint" id="padHint">Draw here</p>
    <div class="padbar glass">
     <div class="inks" id="inks" role="group" aria-label="Ink colour"></div>
-    <div class="acts"><button class="ibtn" id="padUndo" type="button" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button class="ibtn" id="padClear" type="button" aria-label="Clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button><button class="ibtn" id="padSave" type="button" aria-label="Save doodle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button></div>
+    <div class="acts"><button class="ibtn" id="padUndo" type="button" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/></svg></button><button class="ibtn" id="padClear" type="button" aria-label="Clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button><button class="ibtn" id="padSave" type="button" aria-label="Save doodle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button></div>
    </div>
   </div>
  </div></section>
@@ -1176,9 +1174,7 @@ function render(){const g=$('#grid');g.classList.toggle('ph',cat==='photos');g.c
  g.replaceChildren(...list.map(it=>{const b=document.createElement('button');b.type='button';b.className='art'+(cat==='all'&&isTalk(it)?' wide':'');
   b.innerHTML='<div class="thumb'+(isArt(it)?' d':'')+'"><img alt="" loading="lazy"></div><h3></h3><span></span>';
   b.querySelector('img').src=it.img;b.querySelector('h3').textContent=it.name;b.querySelector('span').textContent=isTalk(it)?(it.description||'Let’s talk'):naira(priceOf(it),0);
-  b.setAttribute('aria-label',it.name+', '+(isTalk(it)?'by arrangement':naira(priceOf(it))));b.onclick=()=>openCo(it);return b}));
- // in All, each section gets its own heading, in the order of the tabs
- if(cat==='all'){let prev=null;[...g.children].forEach((el,k)=>{const c=list[k].cat;if(c!==prev){const h=document.createElement('h3');h.className='ghead';h.textContent=CATS.find(x=>x.k===c).n;g.insertBefore(h,el);prev=c}})}}
+  b.setAttribute('aria-label',it.name+', '+(isTalk(it)?'by arrangement':naira(priceOf(it))));b.onclick=()=>openCo(it);return b}));}
 mark();$('#grid').innerHTML='<div class="empty"><h3>Loading pieces</h3><span>One moment…</span></div>';
 
 /* more */
