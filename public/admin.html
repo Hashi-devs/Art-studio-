@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>AR Studio Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap">
-<script>try{const t=localStorage.getItem('ar-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+
 <style>
 @font-face{font-family:'Google Sans Flex';src:url(/fonts/google-sans-flex/GoogleSansFlex.woff) format('woff');font-weight:300 800;font-style:normal;font-display:swap}
 
@@ -43,7 +43,9 @@ label.l{display:block;font-weight:500;margin:0 0 6px}
 .top{position:sticky;top:0;z-index:20;background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);box-shadow:inset 0 -1px 0 var(--line)}
 .top .wrap{display:flex;align-items:center;gap:10px;height:62px}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);margin-right:auto}
-.logo .wm{font:400 26px/1 "Chaumont Script","Brush Script MT",cursive;color:var(--ink);padding-top:3px;text-transform:none;letter-spacing:0}.logo span{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--mut)}
+.logo .wm{display:inline-flex;flex-direction:column;align-items:center;color:var(--ink);white-space:nowrap;line-height:1;text-transform:none;letter-spacing:0}
+.wm b{font:400 30px/.82 "Chaumont Script","Brush Script MT",cursive;letter-spacing:-.01em;padding-top:5px}
+.wm i{font:600 7.5px/1 "Google Sans Flex",system-ui,sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:.34em;margin:1px 0 0 .34em}.logo span{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--mut)}
 
 /* login */
 .login{min-height:calc(100vh - 62px);display:grid;place-items:center;padding:24px 16px}
@@ -98,6 +100,7 @@ main{padding:22px 0 60px}
 .seg button[aria-pressed="true"]{background:var(--surf);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .hint{font-size:13px;color:var(--mut);margin:8px 0 0}
 .tune{display:flex;align-items:center;gap:10px;margin:12px 0 0;font-size:14px}.tune input{flex:1;accent-color:var(--ink)}
+.tune>span:first-child{width:62px;flex:none}#darkV{width:52px;text-align:right}
 .check{display:flex;align-items:center;gap:10px;margin:0 0 16px;cursor:pointer}.check input{width:20px;height:20px;accent-color:var(--ink)}
 .again{position:absolute;top:10px;right:10px;z-index:2}
 /* menu */
@@ -169,8 +172,7 @@ main{padding:22px 0 60px}
 
 <header class="top"><div class="wrap">
  <button class="ibtn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="amenu" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><i class="dot" id="menuDot" hidden></i></button>
- <a class="logo" href="/" aria-label="AR Studios, back to the site"><span class="wm" aria-hidden="true">AR Studios</span><span>Admin</span></a>
- <button class="ibtn" id="themeBtn" type="button" aria-label="Switch theme"></button>
+ <a class="logo" href="/" aria-label="AR Studios, back to the site"><span class="wm" aria-hidden="true"><b>AR</b><i>Studios</i></span><span>Admin</span></a>
  <button class="pill soft sm" id="outBtn" type="button" hidden>Log out</button>
 </div></header>
 <div class="ascrim" id="ascrim" hidden></div>
@@ -226,6 +228,7 @@ main{padding:22px 0 60px}
      </div>
      <p class="hint" id="kindHint"></p>
      <label class="tune" id="tuneRow"><span>Clean up</span><input type="range" id="clean" min="0" max="40" value="8"><span id="cleanV">8</span></label>
+     <label class="tune" id="darkRow"><span>Lines</span><input type="range" id="dark" min="0" max="100" value="50" aria-label="Line strength"><span id="darkV">Medium</span></label>
      <label class="tune" id="rulesRow"><input type="checkbox" id="rules" checked style="flex:0;width:18px;height:18px"> Remove notebook lines</label>
     </div>
     <form id="addForm" novalidate style="margin-top:16px">
@@ -843,13 +846,6 @@ let CFG=null,SES=null,toastT;
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600)}
 $('#today').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
-/* theme */
-{const root=document.documentElement,mq=matchMedia('(prefers-color-scheme: dark)'),b=$('#themeBtn');
- const cur=()=>root.dataset.theme||(mq.matches?'dark':'light');
- const moon='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>',sun='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
- const mark=()=>{const d=cur()==='dark';b.innerHTML=d?sun:moon;b.setAttribute('aria-label',d?'Switch to light mode':'Switch to dark mode')};
- b.onclick=()=>{const n=cur()==='dark'?'light':'dark';root.dataset.theme=n;try{localStorage.setItem('ar-theme',n)}catch(e){}mark()};mq.addEventListener('change',mark);mark()}
-
 /* login session (kept on this device so you don't log in every visit) */
 const store={get(){try{return JSON.parse(localStorage.getItem('ar-admin')||'null')}catch(e){return null}},set(s){try{s?localStorage.setItem('ar-admin',JSON.stringify(s)):localStorage.removeItem('ar-admin')}catch(e){}}};
 async function auth(grant,body){const r=await fetch(CFG.supabaseUrl+'/auth/v1/token?grant_type='+grant,{method:'POST',headers:{apikey:CFG.anonKey,'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -1011,7 +1007,7 @@ async function prep(){if(!U.file)return;busy(true);await new Promise(r=>setTimeo
  try{let c;
   if(U.kind==='asis'){U.org={x:0,y:0};const bm=await createImageBitmap(U.file);c=shrinkTo((()=>{const k=document.createElement('canvas');k.width=bm.width;k.height=bm.height;k.getContext('2d').drawImage(bm,0,0);return k})(),4000)}
   let ox=0,oy=0;
-  if(U.kind!=='asis'){const r=await digitise(U.file,{force:U.kind==='photo'?'photo':'drawing',mode:U.kind==='colour'?'color':U.kind==='drawing'?'ink':'auto',maxSize:MAX,cleanup:+$('#clean').value,rules:$('#rules').checked});c=r.canvas;ox=r.box?r.box.x:0;oy=r.box?r.box.y:0}
+  if(U.kind!=='asis'){const r=await digitise(U.file,{force:U.kind==='photo'?'photo':'drawing',mode:U.kind==='colour'?'color':U.kind==='drawing'?'ink':'auto',maxSize:MAX,cleanup:+$('#clean').value,darkness:+$('#dark').value,rules:$('#rules').checked});c=r.canvas;ox=r.box?r.box.x:0;oy=r.box?r.box.y:0}
   // your crop, in the photo's pixels, trimmed to what this pass produced
   if(U.crop&&U.kind!=='asis'){const k=U.crop,x0=Math.max(ox,k.x),y0=Math.max(oy,k.y),x1=Math.min(ox+c.width,k.x+k.w),y1=Math.min(oy+c.height,k.y+k.h);
    if(x1-x0>2&&y1-y0>2){c=cropTo(c,{x:x0-ox,y:y0-oy,w:x1-x0,h:y1-y0});ox=x0;oy=y0}}
@@ -1022,10 +1018,11 @@ async function prep(){if(!U.file)return;busy(true);await new Promise(r=>setTimeo
   $('#drop').hidden=true;$('#ed').hidden=false;$('#addErr').textContent=''}
  catch(e){console.error(e);$('#addErr').textContent='Couldn’t process that image'+(e&&e.message?' ('+e.message+')':'')+'. Try a smaller JPG or PNG.'}
  busy(false)}
-function setKind(k){const was=U.kind;U.kind=k;$$('#kindSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));$('#kindHint').textContent=HINTS[k];$('#tuneRow').hidden=$('#rulesRow').hidden=!ART_K(k);
+function setKind(k){const was=U.kind;U.kind=k;$$('#kindSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));$('#kindHint').textContent=HINTS[k];$('#tuneRow').hidden=$('#darkRow').hidden=$('#rulesRow').hidden=!ART_K(k);
  $('#eraseBtn').hidden=!ART_K(k);if(was!==k){setTool('move');if(was==='asis'||k==='asis'){U.strokes=[];U.crop=null}}}
 $$('#kindSeg button').forEach(b=>b.onclick=()=>{if(U.kind!==b.dataset.k){setKind(b.dataset.k);prep()}});
-{let t;$('#clean').oninput=e=>{$('#cleanV').textContent=e.target.value;clearTimeout(t);t=setTimeout(prep,400)}}
+{let t;$('#clean').oninput=e=>{$('#cleanV').textContent=e.target.value;clearTimeout(t);t=setTimeout(prep,400)};
+ $('#dark').oninput=e=>{const v=+e.target.value;$('#darkV').textContent=v<34?'Light':v<67?'Medium':'Bold';clearTimeout(t);t=setTimeout(prep,400)}}
 $('#rules').onchange=prep;
 $('#changeImg').onclick=()=>{$('#file').value='';$('#file').click()};
 $('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;U.file=f;U.strokes=[];U.crop=null;$('#addErr').textContent='';
